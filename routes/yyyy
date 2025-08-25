@@ -1,0 +1,420 @@
+
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Password;
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\RegisterController;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\PesananController;
+use App\Http\Controllers\PageController;
+use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\LandingController;
+use App\Http\Controllers\User\ProductController;
+use App\Http\Controllers\User\CheckoutController;
+use App\Http\Controllers\User\PaymentController;
+use App\Http\Controllers\User\MidtransController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\GaleriJahitController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\PelangganController;
+use App\Http\Controllers\User\ProductController as UserProductController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Tailor\DashboardController as TailorDashboardController;
+use App\Http\Controllers\Tailor\RiwayatPesananController;
+use App\Http\Controllers\Tailor\DataPesananController;
+use App\Http\Controllers\User\KeranjangController;
+use App\Http\Controllers\User\OrderCustomController;
+use App\Http\Controllers\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\User\OrderController as UserOrderController;
+use App\Http\Controllers\AdminOrderController;
+
+// ========================
+// HALAMAN UTAMA
+// ========================
+// Route::get('/', function () {
+//     return view('auth.login');
+// });
+
+// ========================
+// AUTHENTIKASI - LOGIN
+// ========================
+
+// Tampilkan halaman login
+Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+
+// Proses login
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth');
+
+// Multi-level protected routes
+Route::middleware(['auth'])->group(function () {
+    Route::middleware(['auth', 'level:admin'])
+        ->prefix('admin')
+        ->name('admin.')
+        ->group(function () {
+
+            Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])
+                ->name('dashboard');
+
+            Route::get('/daftar-pesanan', [\App\Http\Controllers\Admin\OrderController::class, 'index'])
+                ->name('daftar.pesanan');
+
+            Route::get('/galeri-jahit', [\App\Http\Controllers\Admin\GaleriJahitController::class, 'index'])
+                ->name('galeri.jahit');
+
+            Route::get('/pelanggan', [\App\Http\Controllers\Admin\PelangganController::class, 'index'])
+                ->name('pelanggan');
+        });
+
+
+    Route::middleware('level:tailor')->group(function () {
+        Route::get('/tailor/dashboard', function () {
+            return view('tailor.dashboard');
+        });
+    });
+
+    Route::middleware('level:user')->group(function () {
+        Route::get('/user/dashboard', [ProductController::class, 'dashboard'])->name('dashboard');
+       Route::get('/product/{id}', [ProductController::class, 'show'])->name('products.show');
+
+    });
+});
+
+// Logout
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+
+// LUPA PASSWORD
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+})->middleware('guest')->name('password.request');
+
+// ========================
+// REGISTER / DAFTAR AKUN
+// ========================
+
+// Tampilkan halaman register
+Route::get('/register', [RegisterController::class, 'show'])->name('register');
+Route::post('/register', [RegisterController::class, 'register']);
+
+
+// Halaman Dashboard
+Route::get('/dashboard', function () {
+    return view('user.dashboard');
+})->middleware('auth')->name('dashboard');
+
+// Buat Pesanan
+Route::get('/buat-pesanan', function () {
+    return view('user.pesanan.order_custom'); 
+})->name('buat.pesanan');
+
+// konfirmasi pesanan
+Route::get('/konfirmasi-pesanan', [PesananController::class, 'konfirmasi'])->name('konfirmasi.pesanan');
+Route::get('/buat-pesanan', function () {
+    return view('user.pesanan.order_custom');
+})->name('buat.pesanan');
+
+// Pembayaran 
+Route::get('/pembayaran', [PesananController::class, 'pembayaran'])->name('pesanan.pembayaran');
+
+// Pusat Pesanan
+// Route::get('/pusat-pesanan', function () {
+//     return view('user.pesanan.pusat_pesanan');
+// })->name('pusat.pesanan');
+
+// Tentang Kami
+Route::get('/tentang-kami', [App\Http\Controllers\PageController::class, 'tentangKami'])->name('tentangkami');
+
+// Profil
+Route::middleware('auth')->group(function () {
+    Route::get('/profil', [ProfilController::class, 'index'])->name('profil.index');
+});
+
+Route::get('/pesanan', [PesananController::class, 'showOrders'])->name('user.orders.index');
+
+// Route::middleware(['auth'])->group(function () {
+//     Route::get('/profil', [ProfilController::class, 'index'])->name('profil');
+//     Route::post('/profil/update-password', [ProfilController::class, 'updatePassword'])->name('profil.updatePassword');
+// });
+
+//LandingController
+Route::get('/', [LandingController::class, 'index']);
+
+//halaman login ke
+Route::get('/', [LandingController::class, 'index'])->name('landinghome');
+
+//product
+Route::prefix('user')->name('user.')->group(function () {
+    Route::get('/product/{slug}', [ProductController::class, 'show'])
+        ->name('products.show');  // <= ini yang dipanggil di Blade
+});
+
+//cekout alis pemayaran
+// Route::prefix('user')->name('user.')->group(function () {
+//     // tampilkan halaman pembayaran (datanya dikirim dari form)
+//     Route::post('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
+// });
+
+// Checkout dan Payment Routes
+Route::prefix('user')->name('user.')->group(function () {
+    // Produk -> Checkout (tampilkan ringkasan)
+    Route::post('/checkout', [CheckoutController::class, 'create'])->name('checkout.create');
+
+    // Checkout -> Pembayaran (simpan data pilihan + total ke session)
+    Route::post('/payment/prepare', [PaymentController::class, 'prepare'])->name('payment.prepare');
+
+    // Halaman Pembayaran (GET)
+    Route::get('/payment', [PaymentController::class, 'show'])->name('payment.show');
+});
+    
+// pesanan 
+Route::post('/pesanan', [PesananController::class, 'store'])->name('pesanan.store');
+Route::get('/pesanan/{id}', [PesananController::class, 'show'])->name('pesanan.show');
+
+// Webhook Route
+Route::post('/midtrans/notification', [MidtransController::class, 'notification'])->name('midtrans.notification');
+Route::post('/midtrans/notify', [MidtransController::class, 'notify'])->name('midtrans.notify');
+
+// POST: simpan data dari halaman produk ke session lalu redirect ke index
+Route::get('/user/checkout', [CheckoutController::class, 'index'])->name('user.checkout');
+
+// Prefill data dari produk -> simpan ke session -> redirect ke checkout
+Route::post('/user/checkout/prefill', [CheckoutController::class, 'prefill'])
+    ->name('user.checkout.prefill');
+
+// Simpan data dari halaman checkout (misalnya alamat, catatan, dll)
+Route::post('/user/checkout/store', [CheckoutController::class, 'store'])
+    ->name('user.checkout.store');
+
+// Lanjut ke pembayaran (snap token dsb)
+Route::post('/user/checkout/create', [CheckoutController::class, 'create'])
+    ->name('user.checkout.create');
+
+// untuk halaman snap dan redirect
+Route::post('/midtrans/create-snap', [MidtransController::class, 'createSnapToken'])
+    ->name('user.midtrans.checkout');
+
+//pelanggan  
+Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan');
+
+Route::get('/user/checkout/store', fn () => redirect()->route('user.checkout'));
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/daftar-pesanan', [OrderController::class, 'index'])->name('daftar.pesanan');
+    Route::get('/daftar-pesanan/{pesanan}', [OrderController::class, 'show'])->name('daftar.pesanan.show');
+    Route::patch('/daftar-pesanan/{pesanan}/status', [OrderController::class, 'updateStatus'])->name('daftar.pesanan.updateStatus');
+});
+
+
+// galeri jahit 
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::resource('galeri-jahit', GaleriJahitController::class)
+        ->parameters(['galeri-jahit' => 'product'])
+        ->names([
+            'index'   => 'galeri.jahit.index',
+            'create'  => 'galeri.jahit.create',
+            'store'   => 'galeri.jahit.store',
+            'show'    => 'galeri.jahit.show',
+            'edit'    => 'galeri.jahit.edit',
+            'update'  => 'galeri.jahit.update',
+            'destroy' => 'galeri.jahit.destroy',
+        ]);
+});
+
+Route::middleware(['auth', 'level:admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Route untuk pelanggan hanya bisa diakses oleh admin
+    Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan');
+});
+
+
+Route::prefix('admin')->middleware(['auth', 'level:admin'])->group(function () {
+    Route::get('/pelanggan', [PelangganController::class, 'index'])->name('admin.pelanggan.index');
+    Route::get('/pelanggan/{id}', [PelangganController::class, 'show'])->name('admin.pelanggan.show');
+    Route::delete('/pelanggan/{id}', [PelangganController::class, 'destroy'])->name('admin.pelanggan.destroy');
+});
+
+
+Route::middleware(['auth', 'level:admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Route untuk pelanggan
+    Route::get('/pelanggan', [PelangganController::class, 'index'])->name('pelanggan');
+});
+
+Route::middleware(['auth', 'level:tailor'])->prefix('tailor')->name('tailor.')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [TailorDashboardController::class, 'index'])->name('dashboard');
+    
+    // Riwayat Pesanan
+   Route::get('/riwayat-pesanan', [RiwayatPesananController::class, 'index'])->name('riwayat.pesanan');
+
+    // Data Pesanan
+    Route::get('/data-pesanan', [RiwayatPesananController::class, 'dataPesanan'])->name('data.pesanan'); 
+}); 
+
+Route::middleware(['auth', 'level:tailor'])->prefix('tailor')->name('tailor.')->group(function () {
+    Route::get('/data-pesanan', [DataPesananController::class, 'index'])->name('data.pesanan');
+    
+    // Route untuk memperbarui status pesanan
+    Route::put('/update-status/{id}', [DataPesananController::class, 'updateStatus'])->name('update.status');
+});
+
+
+Route::prefix('user')->name('user.')->group(function () {
+    Route::get('/dashboard', [UserProductController::class, 'dashboard'])->name('dashboard');
+    Route::get('/product/{id}', [UserProductController::class, 'show'])->name('product.show');
+});
+
+Route::post('/user/pay/{order}', [MidtransController::class, 'token'])->name('midtrans.user.token');
+Route::post('/midtrans/notification', [MidtransController::class, 'notification'])
+    ->name('midtrans.notification')
+    ->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+
+Route::get('/payment/finish',   [MidtransController::class, 'finish'])->name('midtrans.finish');
+Route::get('/payment/unfinish', [MidtransController::class, 'unfinish'])->name('midtrans.unfinish');
+Route::get('/payment/error',    [MidtransController::class, 'error'])->name('midtrans.error');
+
+// Midtrans Routes
+Route::prefix('user')->name('user.')->group(function () {
+    // SATU endpoint saja untuk create token
+Route::post('/midtrans/create-snap-token',
+    [CheckoutController::class,'createSnapToken']
+)->name('midtrans.create-snap-token');
+
+    // Callbacks
+    Route::get('/midtrans/finish',   [MidtransController::class, 'finish'])->name('midtrans.finish');
+    Route::get('/midtrans/unfinish', [MidtransController::class, 'unfinish'])->name('midtrans.unfinish');
+    Route::get('/midtrans/error',    [MidtransController::class, 'error'])->name('midtrans.error');
+});
+    
+// Webhook Route
+Route::post('/midtrans/notification', [MidtransController::class, 'notification'])->name('midtrans.notification');
+Route::post('/midtrans/notify', [MidtransController::class, 'notify'])->name('midtrans.notify');
+
+// Payments Snap Token Routes
+Route::post('/payments/snap-token/checkout', [CheckoutController::class, 'createSnapToken'])->name('payments.snap-token.checkout');
+Route::post('/payments/snap-token/payment', [PaymentController::class, 'createSnapToken'])->name('payments.snap-token.payment');
+Route::post('/create-snap-token', [\App\Http\Controllers\User\MidtransController::class, 'createSnapToken'])
+    ->name('midtrans.create-snap-token');
+
+    //KERANJANG USER
+Route::middleware(['auth'])->group(function () {
+    Route::get('/keranjang',            [KeranjangController::class, 'index'])->name('keranjang.index');
+    Route::post('/keranjang/tambah',     [KeranjangController::class, 'tambah'])->name('keranjang.tambah');
+    Route::post('/keranjang/update',     [KeranjangController::class, 'update'])->name('keranjang.update');
+    Route::post('/keranjang/hapus',      [KeranjangController::class, 'hapus'])->name('keranjang.hapus');
+    Route::post('/keranjang/kosongkan',  [KeranjangController::class, 'clear'])->name('keranjang.clear');
+    Route::delete('/keranjang/{id}', [KeranjangController::class, 'remove'])
+    ->name('keranjang.remove');
+   Route::post('/keranjang/clear', [KeranjangController::class, 'clear'])
+    ->name('keranjang.clear');  
+
+  Route::post('/keranjang/checkout', [\App\Http\Controllers\User\KeranjangController::class, 'checkout'])
+    ->name('keranjang.checkout'); // <- Wajib POST
+
+Route::get('/keranjang/konfirmasi', [KeranjangController::class, 'konfirmasi'])->name('keranjang.konfirmasi');
+
+
+    Route::post('/pembayaran/lanjut', [KeranjangController::class, 'lanjutPembayaran'])
+    ->name('pembayaran.lanjut'); 
+
+   Route::post('keranjang/payNow', [KeranjangController::class, 'payNow'])->name('keranjang.payNow');
+
+Route::post('/keranjang/pay', [KeranjangController::class, 'payNow'])
+    ->name('keranjang.pay')
+    ->middleware('auth');
+});
+
+Route::post('/keranjang/pay', [KeranjangController::class, 'pay'])->name('keranjang.pay');
+
+
+
+
+// ================== MIDTRANS CALLBACKS ==================
+Route::prefix('midtrans')->name('midtrans.')->group(function () {
+    Route::get('/finish',   [MidtransController::class, 'finish'])->name('finish');
+    Route::get('/unfinish', [MidtransController::class, 'unfinish'])->name('unfinish');
+    Route::get('/error',    [MidtransController::class, 'error'])->name('error');
+});
+
+//tampilan masuk admin dan tailor
+Route::post('/midtrans/webhook', [MidtransController::class, 'handle']);
+
+Route::get('/pesanan', [PesananController::class, 'index'])->name('pusat.pesanan');
+Route::get('/pesanan/sukses', [PesananController::class, 'sukses'])->name('pesanan.sukses');
+
+    
+
+// ================== ORDER CUSTOM (pisah nama biar tak bentrok) ==================
+Route::prefix('orders/custom')->name('oc.')->group(function () {
+    Route::get('/buat',       [OrderCustomController::class, 'index'])->name('buat');          // /orders/custom/buat
+    Route::get('/konfirmasi', [OrderCustomController::class, 'konfirmasi'])->name('konfirmasi');
+    Route::post('/simpan',    [OrderCustomController::class, 'simpan'])->name('simpan');
+
+    // Ajax helper
+    Route::get('/pakaian/{jenis}/kain',   [OrderCustomController::class, 'kainByPakaian'])->name('ajax.kain');
+    Route::get('/pakaian/{jenis}/ukuran', [OrderCustomController::class, 'ukuranByPakaian'])->name('ajax.ukuran');
+    Route::get('/pakaian/{jenis}/image',  [OrderCustomController::class, 'imageByPakaian'])->name('ajax.image');
+});
+
+// ================== KERANJANG ==================
+Route::prefix('keranjang')->name('keranjang.')->group(function () {
+    Route::get('/',            [KeranjangController::class, 'index'])->name('index');
+    Route::post('/',           [KeranjangController::class, 'store'])->name('store');
+    Route::post('/tambah',     [KeranjangController::class, 'tambah'])->name('tambah');
+    Route::post('/checkout',   [KeranjangController::class, 'checkout'])->name('checkout');
+    Route::post('/update',     [KeranjangController::class, 'update'])->name('update');
+    Route::delete('/{id}',     [KeranjangController::class, 'remove'])->name('remove');
+    Route::delete('/clear',    [KeranjangController::class, 'clear'])->name('clear');
+});
+
+// ================== PESANAN (notifikasi sukses/pending) ==================
+Route::get('/pesanan/sukses',  [PesananController::class, 'sukses'])->name('pesanan.sukses');
+Route::get('/pesanan/pending', [PesananController::class, 'pending'])->name('pesanan.pending');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/pesanan', [PesananController::class, 'index'])->name('pusat.pesanan');
+    Route::get('/user/orders', [PesananController::class, 'index'])->name('user.orders.index'); // alias, dipakai redirect
+});
+
+// ================== USER ORDERS (INI YANG PENTING) ==================
+Route::middleware(['web','auth'])
+    ->prefix('user')
+    ->name('user.')
+    ->group(function () {
+        // LIST / PUSAT PESANAN → mengirim $orders (wajib ke UserOrderController@index)
+            
+
+        // DETAIL (pakai route model binding)
+        Route::get('/orders/{order}', [UserOrderController::class, 'show'])->name('orders.show');
+
+        // Alur checkout (pakai nama yang TIDAK bentrok dengan oc.*)
+        Route::post('/orders/review',     [UserOrderController::class, 'review'])->name('orders.review');
+        Route::get('/konfirmasi',         [UserOrderController::class, 'konfirmasi'])->name('konfirmasi.pesanan');
+        Route::post('/pembayaran',        [UserOrderController::class, 'pembayaran'])->name('orders.pay');
+        Route::post('/pesanan/simpan',    [UserOrderController::class, 'simpan'])->name('orders.save');
+    });
+
+// ================== LEGACY REDIRECTS (jalur lama diarahkan ke yang benar) ==================
+// Dulu kamu punya /pesanan-saya, /user/order, /konfirmasi-pesanan, dll.
+Route::get('/pesanan-saya',      fn() => redirect()->route('user.orders.index'))->name('legacy.pesanan.saya');
+Route::get('/user/order',        fn() => redirect()->route('user.orders.index'))->name('legacy.user.order');
+Route::get('/konfirmasi-pesanan',fn() => redirect()->route('user.konfirmasi.pesanan'))->name('legacy.konfirmasi');
+// Kalau mau tetap pakai konfirmasi lama untuk user:
+Route::get('/user/konfirmasi',   fn() => redirect()->route('user.konfirmasi.pesanan'))->name('legacy.user.konfirmasi');
+
+// ================== ADMIN ==================
+//Route::middleware(['auth', 'can:is_admin'])->prefix('admin')->name('admin.')->group(function () {
+  //  Route::get('/orders',                 [AdminOrderController::class, 'index'])->name('orders.index');
+  //  Route::get('/orders/{orderId}',       [AdminOrderController::class, 'show'])->name('orders.show');
+  //  Route::post('/orders/{orderId}/assign',[AdminOrderController::class, 'assign'])->name('orders.assign');
+//});
+
+// ================== TAILOR ==================
+Route::middleware(['auth', 'can:is_tailor'])->prefix('tailor')->name('tailor.')->group(function () {
+    Route::get('/orders',                 [DataPesananController::class, 'indexLegacy'])->name('orders.index');
+    Route::get('/orders/{orderId}',       [DataPesananController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{orderId}/production', [DataPesananController::class, 'updateProduction'])->name('orders.production.update');
+});
+
+Route::post('/checkout/store', [OrderController::class, 'storeToDatabase'])->name('checkout.store');

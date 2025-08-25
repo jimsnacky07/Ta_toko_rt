@@ -1,0 +1,113 @@
+<?php
+
+namespace App\Http\Controllers\User;
+
+use App\Http\Controllers\Controller;
+use App\Models\Pesanan;
+use App\Models\Pembayaran;
+use Illuminate\Http\Request;
+
+class PembayaranController extends Controller
+{
+    /**
+     * Menampilkan halaman pembayaran
+     */
+    public function index(Request $request)
+    {
+        // Ambil data pesanan berdasarkan ID pesanan yang sudah dibuat
+        $pesanan_id = $request->query('pesanan_id'); // Mendapatkan ID pesanan dari query string
+        $pesanan = Pesanan::find($pesanan_id);
+
+        // Pastikan pesanan ada
+        if (!$pesanan) {
+            return redirect()->route('home')->with('error', 'Pesanan tidak ditemukan');
+        }
+
+        // Ambil data pembayaran terkait dengan pesanan ini
+        $pembayaran = Pembayaran::where('pesanan_id', $pesanan_id)->first();
+
+        // Pastikan pembayaran ada
+        if (!$pembayaran) {
+            return redirect()->route('home')->with('error', 'Pembayaran tidak ditemukan');
+        }
+
+        // Mengarahkan hanya sekali
+        if ($pesanan->status === 'completed') {
+            return redirect()->route('home')->with('success', 'Pembayaran sudah berhasil diproses');
+        }
+
+        // Kirim data ke view pembayaran
+        return view('user.pembayaran', [
+            'pesanan' => $pesanan,
+            'pembayaran' => $pembayaran,
+        ]);
+    }
+
+    /**
+     * Fungsi untuk proses pembayaran yang berhasil
+     */
+    public function bayar(Request $request)
+    {
+        // Ambil data pembayaran berdasarkan ID pesanan
+        $pesanan_id = $request->input('pesanan_id'); // Mendapatkan ID pesanan dari request
+        $pesanan = Pesanan::find($pesanan_id);
+
+        // Pastikan pesanan ada dan statusnya masih pending
+        if (!$pesanan || $pesanan->status !== 'pending') {
+            return redirect()->route('home')->with('error', 'Pesanan tidak valid');
+        }
+
+        // Ambil data pembayaran terkait dengan pesanan ini
+        $pembayaran = Pembayaran::where('pesanan_id', $pesanan_id)->first();
+
+        // Pastikan pembayaran ada
+        if (!$pembayaran) {
+            return redirect()->route('home')->with('error', 'Pembayaran tidak ditemukan');
+        }
+
+        // Update status pembayaran menjadi sukses
+        $pembayaran->transaction_status = 'success';
+        $pembayaran->save();
+
+        // Update status pesanan menjadi selesai
+        $pesanan->status = 'completed';
+        $pesanan->save();
+
+        // Redirect ke halaman konfirmasi atau halaman sukses
+        return redirect()->route('home')->with('success', 'Pembayaran berhasil');
+    }
+
+    /**
+     * Fungsi untuk proses pembayaran yang gagal
+     */
+    public function gagal(Request $request)
+    {
+        // Ambil data pesanan berdasarkan ID pesanan
+        $pesanan_id = $request->input('pesanan_id'); // Mendapatkan ID pesanan dari request
+        $pesanan = Pesanan::find($pesanan_id);
+
+        // Pastikan pesanan ada dan statusnya masih pending
+        if (!$pesanan || $pesanan->status !== 'pending') {
+            return redirect()->route('home')->with('error', 'Pesanan tidak valid');
+        }
+
+        // Ambil data pembayaran terkait dengan pesanan ini
+        $pembayaran = Pembayaran::where('pesanan_id', $pesanan_id)->first();
+
+        // Pastikan pembayaran ada
+        if (!$pembayaran) {
+            return redirect()->route('home')->with('error', 'Pembayaran tidak ditemukan');
+        }
+
+        // Update status pembayaran menjadi gagal
+        $pembayaran->transaction_status = 'failed';
+        $pembayaran->save();
+
+        // Update status pesanan menjadi gagal
+        $pesanan->status = 'failed';
+        $pesanan->save();
+
+        // Redirect ke halaman gagal
+        return redirect()->route('home')->with('error', 'Pembayaran gagal');
+    }
+}
