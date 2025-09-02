@@ -18,7 +18,7 @@
     @php $route = Route::currentRouteName(); @endphp
 </head>
 
-<body class="bg-gray-100 h-full">
+<body class="bg-gray-100 h-full text-base">
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <aside :class="collapsed ? 'w-20' : 'w-64'"
@@ -35,11 +35,11 @@
                 </button>
             </div>
 
-            <nav class="mt-4 text-sm">
+            <nav class="mt-4">
                 <ul>
                     <!-- HOME -->
                     <li
-                    class="py-3 px-5 flex items-center text-base font-medium text-black hover:bg-[#EAE0C8] {{ request()->routeIs('user.dashboard') ? 'bg-[#EAE0C8]' : '' }}"
+                    class="py-3 px-5 flex items-center text-lg font-medium text-black hover:bg-[#EAE0C8] {{ request()->routeIs('user.dashboard') ? 'bg-[#EAE0C8]' : '' }}"
                     :class="collapsed ? 'justify-center' : 'space-x-4'">
                     <a href="{{ route('user.dashboard') }}" class="flex items-center gap-3 w-full">
                         <img src="{{ asset('images/home1 .png') }}" alt="Home" class="w-7 h-7">
@@ -49,7 +49,7 @@
 
                     <!-- ORDERS CUSTOM -->
                     <li
-                        class="py-3 px-5 flex items-center text-base font-medium text-black hover:bg-[#EAE0C8] {{ $route == 'buat.pesanan' ? 'bg-[#EAE0C8]' : '' }}"
+                        class="py-3 px-5 flex items-center text-lg font-medium text-black hover:bg-[#EAE0C8] {{ $route == 'buat.pesanan' ? 'bg-[#EAE0C8]' : '' }}"
                         :class="collapsed ? 'justify-center' : 'space-x-4'">
                         <a href="{{ route('buat.pesanan') }}" class="flex items-center gap-3 w-full">
                             <img src="{{ asset('images/buat pesanan.png') }}" alt="Buat Pesanan" class="w-7 h-7">
@@ -59,7 +59,7 @@
 
                     <!-- PESANAN SAYA -->
                     <li
-                        class="py-3 px-5 flex items-center text-base font-medium text-black hover:bg-[#EAE0C8] {{ $route == 'pusat.pesanan' ? 'bg-[#EAE0C8]' : '' }}"
+                        class="py-3 px-5 flex items-center text-lg font-medium text-black hover:bg-[#EAE0C8] {{ $route == 'user.keranjang' ? 'bg-[#EAE0C8]' : '' }}"
                         :class="collapsed ? 'justify-center' : 'space-x-4'">
                         <a href="{{ route('pusat.pesanan') }}" class="flex items-center gap-3 w-full">
                             <img src="{{ asset('images/pusat pesanan.png') }}" alt="Pusat Pesanan" class="w-7 h-7">
@@ -69,7 +69,7 @@
 
                     <!-- TENTANG KAMI -->
                     <li
-                        class="py-3 px-5 flex items-center text-base font-medium text-black hover:bg-[#EAE0C8] {{ $route == 'tentangkami' ? 'bg-[#EAE0C8]' : '' }}"
+                        class="py-3 px-5 flex items-center text-lg font-medium text-black hover:bg-[#EAE0C8] {{ $route == 'user.orders' ? 'bg-[#EAE0C8]' : '' }}"
                         :class="collapsed ? 'justify-center' : 'space-x-4'">
                         <a href="{{ route('tentangkami') }}" class="flex items-center gap-3 w-full">
                             <img src="{{ asset('images/tentang kami.png') }}" alt="Tentang Kami" class="w-7 h-7">
@@ -79,7 +79,7 @@
 
                     <!-- KERANJANG -->
                     <li
-                        class="py-3 px-5 flex items-center text-base font-medium text-black hover:bg-[#EAE0C8] {{ $route == 'keranjang.index' ? 'bg-[#EAE0C8]' : '' }}"
+                        class="py-3 px-5 flex items-center text-lg font-medium text-black hover:bg-[#EAE0C8] {{ $route == 'keranjang.index' ? 'bg-[#EAE0C8]' : '' }}"
                         :class="collapsed ? 'justify-center' : 'space-x-4'">
                         <a href="{{ route('keranjang.index') }}" class="flex items-center gap-3 w-full">
                             <img src="{{ asset('images/keranjang.png') }}" alt="Keranjang" class="w-7 h-7">

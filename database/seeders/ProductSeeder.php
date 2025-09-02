@@ -9,208 +9,356 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('products')->insert([
-            'name' => 'Kemeja Cowok Polos Lengan Panjang',
-            'image' => 'images/baju kemeja cowok 2.jpg',
-            'price' => 85000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Ungu Shimmer',
-            'image' => 'images/rok 4.jpg',
-            'price' => 160000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Beige Shimmer',
-            'image' => 'images/rok 6.jpg',
-            'price' => 120000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Brukat Maron',
-            'image' => 'images/rok 5 (1).jpg',
-            'price' => 198000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Workshirt kemeja lengan pendek',
-            'image' => 'images/baju kemeja cowok 4.jpg',
-            'price' => 180000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Susun Ruffel',
-            'image' => 'images/rok 3.jpg',
-            'price' => 180000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Jenne Susun',
-            'image' => 'images/rok 2.jpg',
-            'price' => 60000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Kemeja Garis Cowok linen',
-            'image' => 'images/baju kemeja cowok 1.jpg',
-            'price' => 90000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Coqueete',
-            'image' => 'images/rok 8.jpg',
-            'price' => 150000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Kemeja Levis Cowok',
-            'image' => 'images/baju kemeja cowok 3.jpg',
-            'price' => 220000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Brukat Hijau',
-            'image' => 'images/rok 5 (3).jpg',
-            'price' => 198000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Brukat Hitam',
-            'image' => 'images/rok 5(2).jpg',
-            'price' => 198000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Rok Brukat cream',
-            'image' => 'images/rok 5 (4).jpg',
-            'price' => 198000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Celana Coklat Formal',
-            'image' => 'images/celana 1.jpg',
-            'price' => 170000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Celana Cream Casual',
-            'image' => 'images/celana 2.jpg',
-            'price' => 160000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Celana Linen',
-            'image' => 'images/celana 3.jpg',
-            'price' => 78000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Celana Slim Fit Hitam',
-            'image' => 'images/celana 4.jpg',
-            'price' => 179000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Celana Chino Light',
-            'image' => 'images/celana 5.jpg',
-            'price' => 174000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Celana Wide Black',
-            'image' => 'images/celana 6.jpg',
-            'price' => 180000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita navy',
-            'image' => 'images/jas.jpg',
-            'price' => 310000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Abu-Abu Elegan',
-            'image' => 'images/jas cewek 2.jpg',
-            'price' => 350000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'kebaya Taro',
-            'image' => 'images/kebaya.jpg',
-            'price' => 350000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Abu-Abu Gelap',
-            'image' => 'images/jas cewek 3.jpg',
-            'price' => 380000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Simpel Mahogany',
-            'image' => 'images/jas cewek 4.jpg',
-            'price' => 350000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Mahogany',
-            'image' => 'images/jas cewek 5.jpg',
-            'price' => 350000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Hijau Zaitun',
-            'image' => 'images/jas cewek 6.jpg',
-            'price' => 350000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Army',
-            'image' => 'images/jas cewek 7.jpg',
-            'price' => 450000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Cream Elegan',
-            'image' => 'images/jas cewek 8.jpg',
-            'price' => 400000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Biru Navy',
-            'image' => 'images/jas cewek 9.jpg',
-            'price' => 400000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Jas Wanita Hitam Modern',
-            'image' => 'images/jas cewek 10.jpg',
-            'price' => 410000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Baju Kemeja Cowok Cream',
-            'image' => 'images/baju kemeja cowok 2.jpg',
-            'price' => 100000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Baju Kemeja Cowok Lengan Panjang Abu-Abu',
-            'image' => 'images/baju kemeja cowok 5.jpg',
-            'price' => 100000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Baju Kemeja Cowok Lengan Pendek Navy',
-            'image' => 'images/kemeja cowok.jpg',
-            'price' => 100000,
-        ]);
-
-        DB::table('products')->insert([
-            'name' => 'Baju Kemeja Cowok Navy',
-            'image' => 'images/baju kemeja  cowok 5.jpg',
-            'price' => 100000,
-        ]);
+        // Hapus data lama terlebih dahulu jika ada
+        DB::table('products')->delete();
+        
+        $now = now();
+        
+        // Array produk dengan deskripsi dan spesifikasi lengkap
+        $products = [
+            [
+                'name' => 'Kemeja Cowok Polos Lengan Panjang',
+                'image' => 'images/baju kemeja cowok 2.jpg',
+                'price' => 85000,
+                'kategory' => 'Kemeja',
+                'bahan' => 'Cotton Premium',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Putih, Biru Muda, Abu-abu',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 88-92cm, M: Lingkar dada 92-96cm, L: Lingkar dada 96-100cm, XL: Lingkar dada 100-104cm',
+                'deskripsi' => 'Kemeja cowok polos lengan panjang dengan bahan cotton premium yang nyaman dan breathable. Desain klasik yang cocok untuk acara formal maupun kasual. Dilengkapi dengan kancing berkualitas dan jahitan rapi.',
+                'description' => 'Kemeja formal pria dengan bahan cotton premium, nyaman dipakai seharian',
+                'colors' => 'Putih,Biru Muda,Abu-abu',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Cotton Premium',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Kemeja Cowok Garis Casual',
+                'image' => 'images/baju kemeja cowok 1.jpg',
+                'price' => 90000,
+                'kategory' => 'Kemeja',
+                'bahan' => 'Linen Blend',
+                'motif' => 'Garis Halus',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Biru Garis, Hitam Garis',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 94cm, M: Lingkar dada 98cm, L: Lingkar dada 102cm, XL: Lingkar dada 106cm',
+                'deskripsi' => 'Kemeja casual dengan motif garis halus yang memberikan kesan modern dan stylish. Berbahan linen blend yang adem dan nyaman untuk aktivitas sehari-hari. Perfect untuk gaya smart casual.',
+                'description' => 'Kemeja casual bergaris dengan bahan linen yang adem dan nyaman',
+                'colors' => 'Biru Garis,Hitam Garis',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Linen Blend',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Kemeja Cowok Levis Style',
+                'image' => 'images/baju kemeja cowok 3.jpg',
+                'price' => 220000,
+                'kategory' => 'Kemeja',
+                'bahan' => 'Denim Premium',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Biru Tua, Hitam',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 88-92cm, M: Lingkar dada 92-96cm, L: Lingkar dada 96-100cm, XL: Lingkar dada 100-104cm',
+                'deskripsi' => 'Kemeja cowok style levis dengan kualitas premium. Berbahan denim tebal yang tahan lama dan nyaman. Cocok untuk gaya kasual modern dengan tampilan yang maskulin dan trendy.',
+                'description' => 'Kemeja denim premium dengan style levis yang trendy',
+                'colors' => 'Biru Tua,Hitam',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Denim Premium',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Workshirt Kemeja Lengan Pendek',
+                'image' => 'images/baju kemeja cowok 4.jpg',
+                'price' => 180000,
+                'kategory' => 'Kemeja',
+                'bahan' => 'Cotton Twill',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Abu-abu, Khaki, Navy',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 95cm, M: Lingkar dada 99cm, L: Lingkar dada 103cm, XL: Lingkar dada 107cm',
+                'deskripsi' => 'Kemeja workshirt lengan pendek yang praktis dan stylish untuk aktivitas sehari-hari. Berbahan cotton twill yang kuat dan tahan lama. Cocok untuk gaya casual atau semi formal.',
+                'description' => 'Workshirt casual untuk aktivitas sehari-hari',
+                'colors' => 'Abu-abu,Khaki,Navy',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Cotton Twill',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Kemeja Cowok Abu-Abu Formal',
+                'image' => 'images/baju kemeja cowok 5.jpg',
+                'price' => 100000,
+                'kategory' => 'Kemeja',
+                'bahan' => 'Cotton',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Abu-abu Muda, Abu-abu Tua',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 94cm, M: Lingkar dada 98cm, L: Lingkar dada 102cm, XL: Lingkar dada 106cm',
+                'deskripsi' => 'Kemeja cowok warna abu-abu yang elegan dan serbaguna. Cocok untuk berbagai acara formal maupun kasual. Bahan cotton yang nyaman dan mudah dirawat.',
+                'description' => 'Kemeja formal warna abu-abu yang elegan',
+                'colors' => 'Abu-abu Muda,Abu-abu Tua',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Cotton',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Kemeja Batik Modern',
+                'image' => 'images/kemeja cowok.jpg',
+                'price' => 150000,
+                'kategory' => 'Kemeja',
+                'bahan' => 'Katun Batik',
+                'motif' => 'Batik Modern',
+                'dikirim_dari' => 'Yogyakarta',
+                'warna' => 'Biru Batik, Coklat Batik',
+                'ukuran' => 'M, L, XL, XXL',
+                'deskripsi_ukuran' => 'M: Lingkar dada 98cm, L: Lingkar dada 102cm, XL: Lingkar dada 106cm, XXL: Lingkar dada 110cm',
+                'deskripsi' => 'Kemeja batik dengan motif modern yang memadukan tradisi dan kontemporer. Berbahan katun batik asli dengan pewarnaan alami. Cocok untuk acara formal, kondangan, atau ke kantor.',
+                'description' => 'Kemeja batik modern dengan motif eksklusif',
+                'colors' => 'Biru Batik,Coklat Batik',
+                'sizes' => 'M,L,XL,XXL',
+                'fabric_type' => 'Katun Batik',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Rok Ungu Shimmer Elegant',
+                'image' => 'images/rok 4.jpg',
+                'price' => 160000,
+                'kategory' => 'Rok',
+                'bahan' => 'Shimmer Fabric',
+                'motif' => 'Shimmer',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Ungu, Silver, Gold',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Pinggang 62cm, M: Pinggang 66cm, L: Pinggang 70cm, XL: Pinggang 74cm',
+                'deskripsi' => 'Rok shimmer dengan warna ungu yang elegan dan mewah. Cocok untuk acara pesta, gala dinner, atau acara formal malam hari. Bahan shimmer yang berkilau memberikan kesan glamour.',
+                'description' => 'Rok shimmer elegan untuk acara formal',
+                'colors' => 'Ungu,Silver,Gold',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Shimmer Fabric',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Rok Beige Shimmer Soft',
+                'image' => 'images/rok 6.jpg',
+                'price' => 120000,
+                'kategory' => 'Rok',
+                'bahan' => 'Shimmer Fabric',
+                'motif' => 'Shimmer',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Beige, Cream, Champagne',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Pinggang 60cm, M: Pinggang 64cm, L: Pinggang 68cm, XL: Lingkar pinggang 72cm',
+                'deskripsi' => 'Rok shimmer warna beige yang memberikan kesan soft dan elegan. Perfect untuk acara semi formal atau cocktail party. Warna netral yang mudah dipadukan dengan berbagai atasan.',
+                'description' => 'Rok shimmer warna soft untuk penampilan elegan',
+                'colors' => 'Beige,Cream,Champagne',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Shimmer Fabric',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Rok Brukat Maron Premium',
+                'image' => 'images/rok 5 (1).jpg',
+                'price' => 198000,
+                'kategory' => 'Rok',
+                'bahan' => 'Brukat Premium',
+                'motif' => 'Brukat',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Maron, Hitam, Navy',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Pinggang 61cm, M: Pinggang 65cm, L: Pinggang 69cm, XL: Pinggang 73cm',
+                'deskripsi' => 'Rok brukat dengan warna maron yang memberikan kesan klasik dan elegan. Menggunakan bahan brukat premium dengan detail yang halus dan indah. Cocok untuk acara pernikahan atau acara formal.',
+                'description' => 'Rok brukat premium untuk acara formal',
+                'colors' => 'Maron,Hitam,Navy',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Brukat Premium',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Rok Susun Ruffel Feminin',
+                'image' => 'images/rok 3.jpg',
+                'price' => 180000,
+                'kategory' => 'Rok',
+                'bahan' => 'Chiffon',
+                'motif' => 'Ruffel',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Putih, Pink, Lavender',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Pinggang 60cm, M: Pinggang 64cm, L: Pinggang 68cm, XL: Pinggang 72cm',
+                'deskripsi' => 'Rok dengan desain susun ruffel yang feminin dan trendy. Berbahan chiffon yang ringan dan mengalir indah. Perfect untuk tampilan romantic dan girly.',
+                'description' => 'Rok susun dengan detail ruffel yang feminin',
+                'colors' => 'Putih,Pink,Lavender',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Chiffon',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Celana Formal Coklat Executive',
+                'image' => 'images/celana 1.jpg',
+                'price' => 170000,
+                'kategory' => 'Celana',
+                'bahan' => 'Wool Blend',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Coklat, Hitam, Navy',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar pinggang 76cm, M: Lingkar pinggang 80cm, L: Lingkar pinggang 84cm, XL: Lingkar pinggang 88cm',
+                'deskripsi' => 'Celana formal warna coklat yang cocok untuk acara resmi dan kantor. Berbahan wool blend yang nyaman dan tidak mudah kusut. Cutting slim fit yang memberikan kesan profesional.',
+                'description' => 'Celana formal untuk penampilan profesional',
+                'colors' => 'Coklat,Hitam,Navy',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Wool Blend',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Celana Cream Casual Chino',
+                'image' => 'images/celana 2.jpg',
+                'price' => 160000,
+                'kategory' => 'Celana',
+                'bahan' => 'Cotton Twill',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Cream, Khaki, Olive',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar pinggang 76cm, M: Lingkar pinggang 80cm, L: Lingkar pinggang 84cm, XL: Lingkar pinggang 88cm',
+                'deskripsi' => 'Celana casual warna cream yang nyaman untuk aktivitas sehari-hari. Model chino yang versatile dan mudah dipadukan. Berbahan cotton twill yang breathable.',
+                'description' => 'Celana casual untuk aktivitas sehari-hari',
+                'colors' => 'Cream,Khaki,Olive',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Cotton Twill',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Jas Wanita Navy Professional',
+                'image' => 'images/jas.jpg',
+                'price' => 310000,
+                'kategory' => 'Jas',
+                'bahan' => 'Wool Premium',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Navy, Hitam, Abu-abu',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 88cm, M: Lingkar dada 92cm, L: Lingkar dada 96cm, XL: Lingkar dada 100cm',
+                'deskripsi' => 'Jas wanita warna navy yang elegan untuk acara formal dan bisnis. Berbahan wool premium dengan cutting yang sempurna. Cocok untuk meeting, presentasi, atau acara corporate.',
+                'description' => 'Jas formal wanita untuk penampilan profesional',
+                'colors' => 'Navy,Hitam,Abu-abu',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Wool Premium',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Blazer Wanita Abu-Abu Modern',
+                'image' => 'images/jas cewek 2.jpg',
+                'price' => 350000,
+                'kategory' => 'Blazer',
+                'bahan' => 'Wool Premium',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Abu-abu, Hitam, Cream',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 88cm, M: Lingkar dada 92cm, L: Lingkar dada 96cm, XL: Lingkar dada 100cm',
+                'deskripsi' => 'Blazer wanita abu-abu dengan desain elegan dan modern. Cutting yang sempurna memberikan siluet yang flattering. Perfect untuk tampilan business casual yang sophisticated.',
+                'description' => 'Blazer wanita elegan dengan desain modern',
+                'colors' => 'Abu-abu,Hitam,Cream',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Wool Premium',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Kebaya Traditional Bordir',
+                'image' => 'images/kebaya.jpg',
+                'price' => 350000,
+                'kategory' => 'Kebaya',
+                'bahan' => 'Brokat Premium',
+                'motif' => 'Bordir Tradisional',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Putih, Cream, Gold',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 86cm, M: Lingkar dada 90cm, L: Lingkar dada 94cm, XL: Lingkar dada 98cm',
+                'deskripsi' => 'Kebaya tradisional dengan detail bordir halus yang dikerjakan dengan tangan terampil. Menggunakan bahan brokat premium yang memberikan kesan mewah dan elegan. Cocok untuk acara pernikahan, wisuda, atau acara formal lainnya.',
+                'description' => 'Kebaya tradisional dengan bordir halus, cocok untuk acara formal',
+                'colors' => 'Putih,Cream,Gold',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Brokat Premium',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Blouse Wanita Elegant Chiffon',
+                'image' => 'images/baju blus.png',
+                'price' => 120000,
+                'kategory' => 'Blouse',
+                'bahan' => 'Chiffon Premium',
+                'motif' => 'Polos',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Putih, Pink, Navy',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 88cm, M: Lingkar dada 92cm, L: Lingkar dada 96cm, XL: Lingkar dada 100cm',
+                'deskripsi' => 'Blouse wanita dengan desain elegant dan feminin. Berbahan chiffon premium yang ringan dan nyaman. Cocok untuk ke kantor atau acara semi formal. Dilengkapi dengan detail kancing mutiara yang menambah kesan mewah.',
+                'description' => 'Blouse elegant berbahan chiffon untuk tampilan profesional',
+                'colors' => 'Putih,Pink,Navy',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Chiffon Premium',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ],
+            [
+                'name' => 'Dress Casual Modern Minimalis',
+                'image' => 'images/baju blus 2.jpg',
+                'price' => 180000,
+                'kategory' => 'Dress',
+                'bahan' => 'Cotton Stretch',
+                'motif' => 'Minimalis',
+                'dikirim_dari' => 'Jakarta',
+                'warna' => 'Hitam, Navy, Maroon',
+                'ukuran' => 'S, M, L, XL',
+                'deskripsi_ukuran' => 'S: Lingkar dada 86cm, M: Lingkar dada 90cm, L: Lingkar dada 94cm, XL: Lingkar dada 98cm',
+                'deskripsi' => 'Dress casual dengan desain modern dan minimalis. Berbahan cotton stretch yang nyaman dan tidak mudah kusut. Perfect untuk daily wear atau hangout dengan teman. Model A-line yang flattering untuk semua bentuk tubuh.',
+                'description' => 'Dress casual modern dengan bahan stretch yang nyaman',
+                'colors' => 'Hitam,Navy,Maroon',
+                'sizes' => 'S,M,L,XL',
+                'fabric_type' => 'Cotton Stretch',
+                'is_preorder' => false,
+                'created_at' => $now,
+                'updated_at' => $now
+            ]
+        ];
+        
+        // Insert semua produk
+        DB::table('products')->insert($products);
     }
 }

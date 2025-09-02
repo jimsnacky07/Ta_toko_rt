@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pesanan;
+// use App\Models\Pesanan; // Model lama, sekarang pakai Order
 use App\Models\DataUkuranBadan;
 use Illuminate\Http\Request;
 use App\Models\Order;
-use Illuminate\Support\Facades\Auth;
-use App\Models\CustomerRequest;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+
 
 
 class PesananController extends Controller
@@ -18,7 +18,7 @@ class PesananController extends Controller
     public function pembayaran(Request $request)
     {
         // (Opsional) kalau memang ada pesanan_id
-        $pesanan = $request->pesanan_id ? Pesanan::find($request->pesanan_id) : null;
+        $pesanan = $request->pesanan_id ? Order::find($request->pesanan_id) : null;
         $ukuran  = $pesanan ? DataUkuranBadan::where('pesanan_id', $pesanan->id)->first() : null;
 
         // >>> AMBIL ANGKA HARGA DARI FORM (hidden input)
@@ -67,36 +67,97 @@ class PesananController extends Controller
     // }
 
     public function showOrders(Request $request)
-{
-    $tab = $request->get('tab', 'all');
+    {
+        $tab = $request->get('tab', 'all');
 
-    $q = Order::where('user_id', Auth::id())->latest();
+        // Cek apakah tabel orders ada
+        if (!\Illuminate\Support\Facades\Schema::hasTable('orders')) {
+            $orders = collect();
+            return view('user.pesanan.pusat_pesanan', compact('orders'));
+        }
 
-    if ($tab === 'unpaid') {
-        // Versi berdasarkan kolom status di orders:
-        $q->where('status', 'PENDING');
+        $q = Order::where('user_id', Auth::id())
+                  ->with('orderItems')
+                  ->latest();
 
-        // ATAU, kalau mau berdasarkan tabel payments:
-        // $q->whereHas('payment', fn($x) => $x->where('transaction_status', 'pending'));
+        if ($tab === 'unpaid') {
+            $q->where('status', 'pending');
+        }
+
+        $orders = $q->get();
+
+        return view('user.pesanan.pusat_pesanan', compact('orders'));
     }
-
-    $orders = $q->get();
-
-    return view('user.pesanan.pusat_pesanan', compact('orders'));
-}
 
 
      public function index(Request $request)
-    {
-        $userId = Auth::id(); // Mendapatkan user_id yang sedang login
+{
+    $userId = Auth::id();
+    $user   = Auth::user();
 
-        // Query pesanan dengan mengambil kolom 'garment_type'
-        $orders = Order::where('user_id', $userId)
-                       ->select('id', 'user_id', 'order_code', 'garment_type', 'status', 'created_at')
-                       ->latest() // Urutkan berdasarkan pesanan terbaru
-                       ->paginate(10); // Gunakan paginate atau get sesuai kebutuhan
+    Log::info('PesananController index called', [
+        'user_id' => $userId,
+        'user_email' => $user?->email,
+        'user_name' => $user->nama ?? 'No user',
+        'session_id' => session()->getId(),
+    ]);
 
-        // Kirim data pesanan ke view
+    if (!Schema::hasTable('orders')) {
+        Log::warning('Orders table does not exist');
+        $orders = new \Illuminate\Pagination\LengthAwarePaginator(
+            collect(), 0, 10, 1, ['path' => request()->url()]
+        );
+        return view('user.pesanan.pusat_pesanan', compact('orders'));
+    }
+
+    try {
+        DB::connection()->getPdo();
+        Log::info('Database connection successful');
+    } catch (\Throwable $e) {
+        Log::error('Database connection failed', ['error' => $e->getMessage()]);
+    }
+
+    // ===== FIX DISINI: pakai alias kolom yg sesuai dengan DB =====
+    $query = Order::where('user_id', $userId)
+        ->with('orderItems') // jangan batasi select agar FK aman (order_id/pesanan_id)
+        ->select([
+            'id',
+            'user_id',
+            'kode_pesanan as order_code', // alias dari kolom DB
+            'status',
+            'total_harga as total_amount', // alias dari kolom DB
+            'created_at',
+            'updated_at',
+        ])
+        ->latest();
+
+    Log::info('Orders query', ['sql' => $query->toSql(), 'bindings' => $query->getBindings()]);
+
+    $orders = $query->get();
+
+    Log::info('Orders retrieved', [
+        'user_id'      => $userId,
+        'orders_count' => $orders->count(),
+        'order_ids'    => $orders->pluck('id')->all(),
+        'order_codes'  => $orders->pluck('order_code')->all(),
+    ]);
+
+    if ($orders->isEmpty()) {
+        $allOrdersCount = Order::count();
+        // ambil sample dgn nama kolom asli
+        $sampleOrder = Order::select('id','user_id','kode_pesanan','status')->first();
+
+        Log::warning('No orders found for user', [
+            'user_id' => $userId,
+            'total_orders_in_db' => $allOrdersCount,
+            'sample_order' => $sampleOrder ? [
+                'id'          => $sampleOrder->id,
+                'user_id'     => $sampleOrder->user_id,
+                'order_code'  => $sampleOrder->kode_pesanan, // map manual
+                'status'      => $sampleOrder->status,
+            ] : null,
+        ]);
+    }
         return view('user.pesanan.pusat_pesanan', compact('orders'));
     }
 
@@ -159,23 +220,25 @@ class PesananController extends Controller
     ]);
 
     // simpan ke database sesuai struktur tabel kamu
-    $pesanan = Pesanan::create([
-        'order_date'        => now(),
-        'status'            => 'UNPAID',
-        'total_harga'       => $data['jumlah'],
+    $pesanan = Order::create([
+        'order_code'        => 'ORD' . time(),
         'user_id'           => Auth::id(),
-        'nama_pelanggan'    => $data['nama_pelanggan'],
-        'telepon_pelanggan' => $data['telepon_pelanggan'] ?? null,
+        'status'            => 'pending',
+        'total_amount'      => $data['jumlah'],
     ]);
 
-    // Simpan detail pesanan
+    // Simpan detail pesanan sebagai order items
     foreach ($data['items'] as $item) {
-        $pesanan->details()->create([
-            'product_id'   => $item['id'],
-            'jumlah'       => $item['quantity'],
-            'harga_satuan' => $item['price'],
-            'total_harga'  => $item['quantity'] * $item['price'],
-            'catatan_khusus' => $item['catatan_khusus'] ?? null,
+        \App\Models\OrderItem::create([
+            'order_id' => $pesanan->id,
+            'product_id' => null, // Custom order tidak punya product_id
+            'garment_type' => $item['jenis_pakaian'] ?? 'Custom Order',
+            'fabric_type' => $item['jenis_kain'] ?? 'Custom Fabric',
+            'size' => $item['size'] ?? 'Custom Size',
+            'price' => $item['price'],
+            'quantity' => $item['quantity'],
+            'total_price' => $item['quantity'] * $item['price'],
+            'special_request' => $item['catatan_khusus'] ?? null,
         ]);
     }
 
@@ -189,7 +252,7 @@ class PesananController extends Controller
     public function show($id)
     {
         // Ambil data pesanan berdasarkan ID
-        $pesanan = Pesanan::findOrFail($id);
+        $pesanan = Order::findOrFail($id);
 
         // Return ke view dengan data pesanan
         return view('pesanan.show', compact('pesanan'));
@@ -203,7 +266,7 @@ class PesananController extends Controller
     public function pembayaranBerhasil(Request $request)
     {
         // Pastikan status pembayaran berhasil diperbarui
-        $order = Pesanan::findOrFail($request->order_id);
+        $order = Order::findOrFail($request->order_id);
         $order->status = 'Lunas';  // Atau sesuai dengan status yang kamu pakai
         $order->save();
         

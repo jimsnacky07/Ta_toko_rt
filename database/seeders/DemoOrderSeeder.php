@@ -45,10 +45,18 @@ class DemoOrderSeeder extends Seeder
 
         // 3) Pesanan
         $pesanan = Pesanan::create([
-            'user_id'     => $user->id,
-            'order_date'  => now(),
-            'status'      => 'menunggu',
-            'total_harga' => 0,
+            'user_id'               => $user->id,
+            'kode_pesanan'         => 'ORD-' . now()->format('Ymd') . '-' . rand(1000, 9999),
+            'status'               => 'pending',
+            'total_harga'          => 150000,
+            'metode_pembayaran'    => 'transfer_bank',
+            'nama_pengiriman'      => $user->name,
+            'no_telp_pengiriman'   => '081234567890',
+            'alamat_pengiriman'    => 'Jl. Contoh No. 123',
+            'kota_pengiriman'      => 'Jakarta',
+            'kecamatan_pengiriman' => 'Kebayoran Baru',
+            'kode_pos_pengiriman'  => '12120',
+            'catatan'              => 'Pesanan demo',
         ]);
 
         // 4) Detail Pesanan

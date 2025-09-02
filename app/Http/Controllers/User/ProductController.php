@@ -28,8 +28,8 @@ class ProductController extends Controller
             if (is_string($rawImage) && str_starts_with($rawImage, 'http')) {
                 $imageUrl = $rawImage; // sudah URL
             } else {
-                // anggap path di storage/app/public/...
-                $imageUrl = Storage::url($rawImage); // pastikan sudah: php artisan storage:link
+                // gunakan asset() langsung untuk path images/
+                $imageUrl = asset($rawImage);
             }
         } else {
             $imageUrl = asset('images/placeholder.png'); // fallback aman
@@ -50,8 +50,9 @@ class ProductController extends Controller
             'Bahan'        => ['bahan', 'material', 'fabric'],
             'Motif'        => ['motif', 'pattern'],
             'Dikirim Dari' => ['dikirim_dari', 'asal_pengiriman', 'kota_pengirim'],
+            'Kategori'     => ['kategory', 'category'],
             'Warna'        => ['warna'],
-            'Ukuran'       => ['ukuran', 'size_label'],
+            'Ukuran'       => ['ukuran', 'size_label', 'deskripsi_ukuran'],
         ];
         foreach ($mapCols as $label => $candidates) {
             foreach ($candidates as $col) {

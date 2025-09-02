@@ -1,10 +1,10 @@
 @extends('admin.layouts.app')
-@section('title','Dashboard Admin')
+@section('title','Pendapatan Toko Bulan Ini')
 
 @section('content')
 <div class="max-w-7xl mx-auto">
   <h1 class="text-2xl font-semibold text-gray-800 mb-6 text-center">
-    Ringkasan Pesanan Bulan Ini
+    Pendapatan Toko Bulan Ini
   </h1>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

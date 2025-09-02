@@ -532,6 +532,7 @@ class KeranjangController extends Controller
         // Build item_details & total
         $itemDetails = [];
         $gross = 0;
+        $orderItems = []; // Untuk disimpan ke database
 
         foreach ($list as $row) {
             $type = $row['type'] ?? 'prod';
@@ -540,24 +541,55 @@ class KeranjangController extends Controller
                 $qty   = (int)($row['qty'] ?? 1);
                 $price = $this->toInt($row['harga'] ?? 0);
                 $name  = (string)($row['nama'] ?? 'Produk');
+                $productId = $row['product_id'] ?? null;
+                
                 $itemDetails[] = [
                     'id'       => (string)($row['id'] ?? Str::uuid()),
                     'price'    => $price,
                     'quantity' => $qty,
                     'name'     => $name,
                 ];
+                
+                // Data untuk database
+                $orderItems[] = [
+                    'type' => 'prod',
+                    'product_id' => $productId,
+                    'garment_type' => 'Ready Made',
+                    'fabric_type' => 'Standard',
+                    'size' => $row['size'] ?? 'M',
+                    'price' => $price,
+                    'quantity' => $qty,
+                    'total_price' => $price * $qty,
+                    'special_request' => null,
+                ];
+                
                 $gross += $price * $qty;
 
             } else {
                 $qty   = (int)($row['jumlah'] ?? 1);
                 $price = $this->toInt($row['prices']['total_price'] ?? 0);
                 $name  = trim(($row['jenis_pakaian'] ?? 'Order Custom').' — '.($row['jenis_kain'] ?? '-'));
+                
                 $itemDetails[] = [
                     'id'       => (string)($row['id'] ?? Str::uuid()),
                     'price'    => $price,
                     'quantity' => $qty,
                     'name'     => $name,
                 ];
+                
+                // Data untuk database
+                $orderItems[] = [
+                    'type' => 'custom',
+                    'product_id' => 1, // Default product ID untuk custom order
+                    'garment_type' => $row['jenis_pakaian'] ?? 'Custom',
+                    'fabric_type' => $row['jenis_kain'] ?? 'Custom',
+                    'size' => 'Custom',
+                    'price' => $price,
+                    'quantity' => $qty,
+                    'total_price' => $price * $qty,
+                    'special_request' => $row['request'] ?? null,
+                ];
+                
                 $gross += $price * $qty;
             }
         }
@@ -565,6 +597,39 @@ class KeranjangController extends Controller
         if ($gross < 1) {
             return back()->with('error', 'Total transaksi tidak valid.');
         }
+
+        // Generate unique order code
+        $orderCode = 'ORDER' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        
+        \Log::info('KeranjangController.pay() - Starting checkout process', [
+            'user_id' => Auth::id(),
+            'user_email' => Auth::user()->email,
+            'order_code' => $orderCode,
+            'total_amount' => $gross,
+            'items_count' => count($orderItems)
+        ]);
+        
+        // Simpan data order ke session untuk digunakan di webhook
+        $user = Auth::user();
+        $pendingOrder = [
+            'user_id' => $user->id,
+            'user_email' => $user->email, // Pastikan email disertakan
+            'items' => $orderItems,
+            'total_amount' => $gross,
+            'selected_cart_ids' => $selectedIds, // Untuk menghapus dari keranjang setelah sukses
+        ];
+        
+        // Simpan ke session dengan lifetime yang lebih lama
+        session(['pending_order' => $pendingOrder]);
+        
+        // Log the session data for debugging
+        \Log::info('Pending order saved to session', [
+            'session_id' => session()->getId(),
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'order_total' => $gross,
+            'item_count' => count($orderItems)
+        ]);
 
         // Konfigurasi Midtrans
         MidtransConfig::$serverKey    = config('midtrans.server_key');
@@ -579,14 +644,19 @@ class KeranjangController extends Controller
 
         $params = [
             'transaction_details' => [
-                'order_id'     => 'ORDER-'.Str::uuid(),   // unik
-                'gross_amount' => (int) $gross,           // integer
+                'order_id'     => $orderCode,   // Gunakan order code yang konsisten
+                'gross_amount' => (int) $gross,
             ],
             'item_details'     => $itemDetails,
             'customer_details' => [
                 'first_name' => $firstName,
                 'email'      => $email,
                 'phone'      => $phone,
+            ],
+            'callbacks' => [
+                'finish'   => route('midtrans.finish'),
+                'unfinish' => route('midtrans.unfinish'),
+                'error'    => route('midtrans.error'),
             ],
         ];
 

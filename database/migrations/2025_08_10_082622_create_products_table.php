@@ -9,28 +9,34 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
-            $table->id(); // bigint unsigned auto_increment primary
+            $table->id();
             $table->string('name', 255);
             $table->string('image', 255)->nullable();
             $table->integer('price');
-
-            // kolom tambahan
+            
+            // Kolom utama
             $table->string('kategory', 100)->nullable();
             $table->string('bahan', 100)->nullable();
             $table->string('motif', 100)->nullable();
             $table->string('dikirim_dari', 100)->nullable();
-            $table->text('deskripsi_ukuran')->nullable();
             $table->text('deskripsi')->nullable();
+            $table->text('deskripsi_ukuran')->nullable();
+            
+            // Kolom tambahan untuk seeder
+            $table->text('description')->nullable();
+            $table->string('warna', 255)->nullable();
+            $table->string('ukuran', 255)->nullable();
+            $table->string('colors', 255)->nullable();
+            $table->string('sizes', 255)->nullable();
+            $table->string('fabric_type', 100)->nullable();
+            $table->boolean('is_preorder')->default(false);
 
-            $table->timestamps(); // created_at & updated_at
+            $table->timestamps();
         });
     }
 
-   public function down()
+    public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn('description'); // Menghapus kolom description jika rollback
-        });
+        Schema::dropIfExists('products');
     }
-    
 };

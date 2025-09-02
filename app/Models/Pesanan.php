@@ -10,11 +10,28 @@ class Pesanan extends Model
     use HasFactory;
 
     protected $table = 'pesanan'; // Nama tabel pesanan
+    
     protected $fillable = [
-        'user_id', 'order_date', 'status', 'total_harga', 'nama_pelanggan', 'telepon_pelanggan'
+        'user_id',
+        'kode_pesanan',
+        'status',
+        'total_harga',
+        'metode_pembayaran',
+        'bukti_pembayaran',
+        'nama_pengiriman',
+        'no_telp_pengiriman',
+        'alamat_pengiriman',
+        'kota_pengiriman',
+        'kecamatan_pengiriman',
+        'kode_pos_pengiriman',
+        'catatan'
     ];
 
-    protected $casts = ['order_date' => 'date'];
+    protected $casts = [
+        'total_harga' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
 
     // Relasi dengan User
     public function user()
@@ -26,6 +43,12 @@ class Pesanan extends Model
     public function details()
     {
         return $this->hasMany(DetailPesanan::class, 'pesanan_id', 'id');
+    }
+
+    // Relasi dengan OrderItem
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class, 'pesanan_id');
     }
 
     // Relasi dengan Pembayaran
@@ -47,10 +70,9 @@ class Pesanan extends Model
     }
 
     // Relasi dengan Produk (via detail_pesanan)
-    public function products()
+   public function product()
     {
-        return $this->belongsToMany(Product::class, 'detail_pesanan', 'pesanan_id', 'product_id')
-                    ->withPivot(['jumlah', 'harga_satuan', 'total_harga']);
+        return $this->belongsTo(Product::class, 'product_id');  // Menghubungkan dengan kolom product_id
     }
 
     public const STATUSES = ['menunggu', 'diproses', 'siap-diambil', 'selesai', 'dibatalkan'];

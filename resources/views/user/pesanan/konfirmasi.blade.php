@@ -121,15 +121,27 @@
 
     const token = @json($snapToken);
     if (token) {
+      // Check if popup blocker is active
+      const testPopup = window.open('', '_blank', 'width=1,height=1');
+      if (!testPopup || testPopup.closed || typeof testPopup.closed == 'undefined') {
+        // Popup blocked - use redirect method
+        alert('Popup diblokir browser. Mengalihkan ke halaman pembayaran...');
+        window.location.href = 'https://app.sandbox.midtrans.com/snap/v2/vtweb/' + token;
+        return;
+      } else {
+        testPopup.close();
+      }
+
       if (window.snap && typeof window.snap.pay === 'function') {
         window.snap.pay(token, {
-          onSuccess : () => window.location = "{{ route('pesanan.sukses') }}",
-          onPending : () => window.location = "{{ route('pesanan.pending') }}",
+          onSuccess : () => window.location = "{{ route('user.orders.index') }}",
+          onPending : () => window.location = "{{ route('user.orders.index') }}",
           onError   : () => alert('Terjadi kesalahan pembayaran.'),
           onClose   : () => console.log('Popup ditutup.')
         });
       } else {
-        alert('Snap belum siap. Coba lagi sesaat lagi ya.');
+        // Fallback to redirect if snap not loaded
+        window.location.href = 'https://app.sandbox.midtrans.com/snap/v2/vtweb/' + token;
       }
     } else {
       alert('Pembayaran online belum aktif. Silakan klik "Simpan" dulu atau lanjutkan pembayaran manual di toko.');

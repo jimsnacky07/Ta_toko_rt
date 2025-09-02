@@ -23,20 +23,38 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials)) {
+        // Debug: Check if user exists in database
+        $user = \App\Models\User::where('email', $request->email)->first();
+        if (!$user) {
+            return back()->withErrors([
+                'email' => 'Email tidak ditemukan.',
+            ])->withInput();
+        }
+
+        // Debug: Check password
+        if (!\Hash::check($request->password, $user->password)) {
+            return back()->withErrors([
+                'email' => 'Password salah.',
+            ])->withInput();
+        }
+
+        // Try to authenticate with different field names
+        $credentials1 = ['email' => $request->email, 'password' => $request->password];
+        
+        if (Auth::attempt($credentials1)) {
             $request->session()->regenerate();
 
             // Redirect berdasarkan level
-            switch (Auth::user()->level) {
+            $userLevel = Auth::user()->level ?? 'customer';
+            switch ($userLevel) {
                 case 'admin':
                     return redirect()->intended('/admin/dashboard');
                 case 'tailor':
                     return redirect()->intended('/tailor/dashboard');
+                case 'customer':
                 case 'user':
-                    return redirect()->intended('/user/dashboard');
                 default:
-                    Auth::logout();
-                    return back()->withErrors(['email' => 'Level tidak dikenali.']);
+                    return redirect()->intended('/dashboard');
             }
         }
 

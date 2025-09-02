@@ -18,6 +18,7 @@
                 <th class="px-4 py-2 border-b">Email</th>
                 <th class="px-4 py-2 border-b">Nama</th>
                 <th class="px-4 py-2 border-b">No Telpon</th>
+                <th class="px-4 py-2 border-b">Total Orders</th>
                 <th class="px-4 py-2 border-b">Action</th>
                 <th class="px-4 py-2 border-b">Status Pembayaran</th>
                 <th class="px-4 py-2 border-b">Status Penjemputan</th>
@@ -26,15 +27,24 @@
         <tbody>
             @forelse ($list as $index => $u)
                 @php
-                    // pesanan terakhir sudah di-eager-load di controller: with(['pesanan' => fn($q)=>$q->latest()->limit(1)])
-                    $last = $u->pesanan->first();
+                    // Check both new orders and legacy pesanan
+                    $lastOrder = $u->orders->first();
+                    $lastPesanan = $u->pesanan->first();
+                    
+                    // Use the most recent order (either from orders or pesanan)
+                    $last = null;
+                    if ($lastOrder && $lastPesanan) {
+                        $last = $lastOrder->created_at > $lastPesanan->created_at ? $lastOrder : $lastPesanan;
+                    } else {
+                        $last = $lastOrder ?: $lastPesanan;
+                    }
 
                     // Pembayaran dianggap lunas kalau:
-                    // - status pesanan = 'lunas', ATAU
+                    // - status order/pesanan = 'paid'/'lunas', ATAU
                     // - ada record pembayaran dengan status 'lunas'
                     $isPaid = false;
                     if ($last) {
-                        $isPaid = ($last->status === 'lunas')
+                        $isPaid = in_array($last->status ?? '', ['paid', 'lunas'])
                             || (method_exists($last, 'pembayarans') && $last->relationLoaded('pembayarans')
                                 ? $last->pembayarans->contains(fn($p) => $p->status === 'lunas')
                                 : false);
@@ -42,6 +52,9 @@
 
                     // Diambil jika status pesanan 'diambil' atau 'selesai'
                     $isPicked = in_array($last->status ?? '', ['diambil', 'selesai']);
+                    
+                    // Total orders count (both new and legacy)
+                    $totalOrders = ($u->orders_count ?? 0) + ($u->pesanan_count ?? 0);
                 @endphp
 
                 <tr class="hover:bg-gray-50">
@@ -49,6 +62,9 @@
                     <td class="px-4 py-2 border-b">{{ $u->email }}</td>
                     <td class="px-4 py-2 border-b">{{ $u->nama ?? $u->name }}</td>
                     <td class="px-4 py-2 border-b">{{ $u->no_telp ?? $u->no_telpon ?? $u->phone }}</td>
+                    <td class="px-4 py-2 border-b">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">{{ $totalOrders }}</span>
+                    </td>
                     <td class="px-4 py-2 border-b space-x-2">
                         {{-- Lihat detail pelanggan --}}
                         <a href="{{ route('admin.pelanggan.show', $u->id) }}" class="text-blue-600 hover:underline">👁️</a>
@@ -75,7 +91,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="px-4 py-6 text-center text-gray-500">Belum ada pelanggan.</td>
+                    <td colspan="8" class="px-4 py-6 text-center text-gray-500">Belum ada pelanggan.</td>
                 </tr>
             @endforelse
         </tbody>

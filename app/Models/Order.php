@@ -1,39 +1,57 @@
 <?php
-// app/Models/Order.php
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Order extends Model
 {
     use HasFactory;
 
+    // tabel default 'orders' sudah benar, tak perlu $table
+
     protected $fillable = [
-        'user_id', 'order_code', 'status', 'total_amount', 'paid_at'
+        'user_id',
+        'kode_pesanan',
+        'order_code',
+        'status',
+        'total_harga',
+        'total_amount',
+        'metode_pembayaran',
+        'bukti_pembayaran',
+        'nama_pengiriman',
+        'no_telp_pengiriman',
+        'alamat_pengiriman',
+        'kota_pengiriman',
+        'kecamatan_pengiriman',
+        'kode_pos_pengiriman',
+        'catatan',
+        'paid_at',
     ];
 
-    /**
-     * Relasi ke order_items (setiap order memiliki banyak order item)
-     */
-    public function orderItems()
-    {
-        return $this->hasMany(OrderItem::class); // Relasi satu ke banyak
-    }
+    protected $casts = [
+        'total_harga' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+        'paid_at' => 'datetime',
+        'created_at'  => 'datetime',
+        'updated_at'  => 'datetime',
+    ];
 
-    /**
-     * Relasi ke User (setiap order dimiliki oleh satu user)
-     */
+    // Relasi
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-     public function updateOrderAfterPayment()
+    public function items()
     {
-        // Misalnya, mengupdate kolom total_amount atau informasi lainnya setelah pembayaran
-        $this->total_amount = $this->orderItems()->sum('total_price'); // Menghitung total harga berdasarkan item di order
-        $this->save();
+        return $this->hasMany(OrderItem::class, 'order_id');
+    }
+    
+    // Alias untuk konsistensi
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class, 'order_id');
     }
 }

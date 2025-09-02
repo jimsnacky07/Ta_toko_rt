@@ -43,9 +43,9 @@ class OrderController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $tailors = Tailor::orderBy('name')->get();
+        $tailors = \App\Models\User::where('level', 'tailor')->orderBy('nama')->get();
 
-        return view('admin.pesanan.index', compact('orders','tailors','q','status'));
+        return view('admin.daftar-pesanan', compact('orders','tailors','q','status'));
     }
 
     /**
@@ -72,14 +72,61 @@ class OrderController extends Controller
     public function assign(Request $r, $orderId)
     {
         $r->validate([
-            'tailor_id' => 'required|exists:tailors,id',
+            'tailor_id' => 'required|exists:users,id',
         ]);
 
-        $order = Order::where('order_id', $orderId)->firstOrFail();
+        $order = Order::where('order_code', $orderId)->orWhere('kode_pesanan', $orderId)->firstOrFail();
         $order->tailor_id = $r->tailor_id;
         $order->save();
 
         return back()->with('ok', 'Tailor ditetapkan');
+    }
+
+    /**
+     * Get order details for AJAX modal
+     */
+    public function getOrderDetails(Order $order)
+    {
+        $order->load(['user', 'orderItems']);
+        
+        return response()->json([
+            'id' => $order->id,
+            'order_code' => $order->order_code ?? $order->kode_pesanan,
+            'status' => $order->status,
+            'total_amount' => $order->total_amount,
+            'created_at' => $order->created_at->format('d/m/Y H:i'),
+            'user' => [
+                'nama' => $order->user->nama ?? $order->user->name,
+                'email' => $order->user->email,
+                'no_telp' => $order->user->no_telp ?? $order->user->phone,
+            ],
+            'order_items' => $order->orderItems->map(function ($item) {
+                return [
+                    'product_id' => $item->product_id,
+                    'garment_type' => $item->garment_type,
+                    'fabric_type' => $item->fabric_type,
+                    'size' => $item->size,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'total_price' => $item->total_price,
+                    'special_request' => $item->special_request,
+                ];
+            }),
+        ]);
+    }
+
+    /**
+     * Update order status via AJAX
+     */
+    public function updateStatus(Request $request, Order $order)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,paid,menunggu,diproses,selesai,cancelled'
+        ]);
+
+        $order->update(['status' => $request->status]);
+
+        return response()->json(['success' => true, 'message' => 'Status berhasil diupdate']);
     }
 
     /* =========================================================

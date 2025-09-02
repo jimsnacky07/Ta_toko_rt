@@ -64,68 +64,86 @@
   <div class="mb-4 p-3 bg-red-100 text-red-800 rounded">{{ session('error') }}</div>
 @endif
 
+{{-- Debug Info --}}
+<div class="mb-4 p-3 bg-blue-100 text-blue-800 rounded">
+  <strong>Debug Info:</strong><br>
+  User ID: {{ Auth::id() }}<br>
+  User Name: {{ Auth::user() ? Auth::user()->nama : 'No user' }}<br>
+  Orders Count: {{ is_countable($orders) ? count($orders) : 0 }}<br>
+  Orders Type: {{ gettype($orders) }}
+</div>
+
 {{-- Daftar Pesanan --}}
 <div class="space-y-4">
-  @forelse($orders as $o)
-    @php
-      // Tentukan status bayar dari kolom order/status atau payment->transaction_status
-      $paidStatus = $o->status ?? optional($o->payment)->transaction_status ?? '-';
-      // Filter sederhana berdasarkan tab
-      $skip = $tab === 'unpaid' ? !str_contains(strtoupper($paidStatus), 'PENDING') && !str_contains(strtoupper($paidStatus), 'UNPAID') : false;
-    @endphp
+  @if(is_countable($orders) && count($orders) > 0)
+    @foreach($orders as $o)
+      @php
+        // Status pembayaran dari kolom status di orders
+        $paidStatus = $o->status ?? 'pending';
+        
+        // Ambil item pertama untuk menampilkan detail
+        $firstItem = $o->orderItems->first();
+        $itemCount = $o->orderItems->count();
+      @endphp
 
-    @if(!$skip)
-    <div class="flex gap-4 items-center border-b pb-4">
-      <div class="w-24 h-24 bg-gray-200 flex items-center justify-center overflow-hidden rounded">
-        @php
-          $img = null;
-          if (!empty($o->images) && is_array($o->images)) {
-            $img = $o->images[0] ?? null;
-          }
-        @endphp
-        @if($img)
-          <img src="{{ $img }}" alt="Foto" class="w-full h-full object-cover">
-        @else
-          <span class="text-gray-500">X</span>
-        @endif
-      </div>
+      <div class="flex gap-4 items-center border-b pb-4">
+        <div class="w-24 h-24 bg-gray-200 flex items-center justify-center overflow-hidden rounded">
+          <span class="text-gray-500 text-xs">{{ $firstItem->garment_type ?? 'Item' }}</span>
+        </div>
 
-      <div class="flex-1">
-        <div class="font-medium">
-          {{ $o->title ?? 'Pesanan #' . ($o->order_id ?? $o->order_code ?? $o->id) }}
+        <div class="flex-1">
+          <div class="font-medium">
+            Pesanan #{{ $o->order_code }}
+          </div>
+          <div class="text-xs text-gray-500">
+            Order ID: {{ $o->order_code }}
+            • Tgl: {{ $o->created_at->format('d M Y') }}
+          </div>
+          <p class="text-gray-700 mt-1">
+            @if($firstItem)
+              {{ $firstItem->garment_type }} - {{ $firstItem->fabric_type }}
+              @if($itemCount > 1)
+                <span class="text-gray-500">dan {{ $itemCount - 1 }} item lainnya</span>
+              @endif
+            @else
+              Detail pesanan tidak tersedia
+            @endif
+          </p>
+          <div class="mt-1 text-sm">
+            Total: <span class="font-semibold">
+              Rp{{ number_format($o->total_amount ?? 0, 0, ',', '.') }}
+            </span>
+          </div>
+          @if($firstItem && $firstItem->special_request)
+            <div class="text-xs text-gray-600 mt-1">
+              Catatan: {{ Str::limit($firstItem->special_request, 50) }}
+            </div>
+          @endif
         </div>
-        <div class="text-xs text-gray-500">
-          Order ID: {{ $o->order_id ?? $o->order_code ?? $o->id }}
-          • Tgl: {{ optional($o->ordered_at ?? $o->created_at)->format('d M Y') }}
-        </div>
-        <p class="text-gray-700 mt-1">
-          @php
-            $ringkas = $o->description ?? ($o->garment_type ? ('Jenis pakaian: '.$o->garment_type) : null) ?? ($o->fabric_type  ? ('Jenis kain: '.$o->fabric_type) : null);
-          @endphp
-          {{ $ringkas ? Str::limit($ringkas, 140) : 'Detail pesanan ditampilkan di sini.' }}
-        </p>
-        <div class="mt-1 text-sm">
-          Total: <span class="font-semibold">
-            Rp{{ number_format($o->amount ?? $o->gross_amount ?? 0, 0, ',', '.') }}
-          </span>
-        </div>
-      </div>
 
-      <div class="text-right">
-        <div class="text-sm font-semibold {{ $badgeProd($o->production_status ?? null) }}">
-          {{ $labelProd($o->production_status ?? null) }}
-        </div>
-        <div class="mt-2">
-          <span class="text-xs px-2 py-1 rounded {{ $badgePay($paidStatus) }}">
-            Bayar: {{ strtoupper($paidStatus) }}
-          </span>
+        <div class="text-right">
+          <div class="text-sm font-semibold text-blue-600">
+            {{ $itemCount }} item{{ $itemCount > 1 ? 's' : '' }}
+          </div>
+          <div class="mt-2">
+            <span class="text-xs px-2 py-1 rounded {{ $badgePay($paidStatus) }}">
+              {{ ucfirst($paidStatus) }}
+            </span>
+          </div>
+          @if($o->paid_at)
+            <div class="text-xs text-gray-500 mt-1">
+              Dibayar: {{ $o->paid_at->format('d/m/Y H:i') }}
+            </div>
+          @endif
         </div>
       </div>
+    @endforeach
+  @else
+    <div class="text-gray-500">
+      Belum ada pesanan.<br>
+      <small>Debug: Orders variable type: {{ gettype($orders) }}</small>
     </div>
-    @endif
-  @empty
-    <div class="text-gray-500">Belum ada pesanan.</div>
-  @endforelse
+  @endif
 </div>
 
 {{-- pagination jika menggunakan paginate() --}}

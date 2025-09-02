@@ -53,6 +53,17 @@
             <div class="font-medium text-gray-800">{{ $name }}</div>
             <div>Harga: <span class="font-semibold">Rp {{ number_format($price,0,',','.') }}</span></div>
             <div>Jumlah: <span class="font-medium">{{ $qty }}</span></div>
+            
+            {{-- Ukuran yang dipilih --}}
+            @php
+              $selectedSize = $data['size'] ?? session('selected_size') ?? request('size') ?? '';
+            @endphp
+            @if($selectedSize)
+            <div class="mt-2">
+              <span class="text-xs text-gray-600">Ukuran: </span>
+              <span class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded font-medium">{{ $selectedSize }}</span>
+            </div>
+            @endif
           </div>
         </div>
       </div>
@@ -115,6 +126,9 @@
 
           {{-- method pengambilan disinkronkan via JS --}}
           <input type="hidden" name="pickup_method" id="pickup-method-input" value="{{ $selected }}">
+          
+          {{-- ukuran produk yang dipilih --}}
+          <input type="hidden" name="size" id="selected-size-input" value="{{ $selectedSize }}">
 
           {{-- ==== WAJIB KIRIM KE SERVER (sesuai validasi 422 kamu) ==== --}}
           @php
@@ -182,6 +196,9 @@
       payBtn.addEventListener('click', async function (e) {
         e.preventDefault();
         if (busy) return;
+        
+        // Ukuran sudah dipilih dari halaman produk, tidak perlu validasi lagi
+        
         busy = true; payBtn.disabled = true;
 
         // pastikan snap ada (kalau tidak, nanti fallback VTWeb)
@@ -288,6 +305,8 @@
 
       // lakukan kalkulasi awal sesuai nilai tersembunyi saat halaman dibuka
       recalc(pickupInp?.value === 'jnt' ? 'jnt' : 'store');
+      
+      // Ukuran sudah dipilih dari halaman produk, tidak perlu handler lagi
     });
   })();
   </script>

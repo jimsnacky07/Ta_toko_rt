@@ -84,18 +84,66 @@
       @endif
 
       {{-- Opsi ukuran --}}
-      @if(!empty($sizes))
-        <div class="mt-4">
-          <div class="text-sm text-gray-600 mb-1">Ukuran</div>
-          <div class="flex flex-wrap gap-2" id="sizeList">
-            @foreach($sizes as $s)
-              <button type="button"
-                      class="w-12 py-1.5 rounded border text-sm hover:bg-gray-50"
-                      data-size="{{ $s }}">{{ $s }}</button>
-            @endforeach
+      <div class="mt-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-sm text-gray-600">Ukuran</div>
+          <button type="button" onclick="toggleSizeGuide()" class="text-xs text-blue-600 hover:underline">
+            📏 Panduan Ukuran
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-2" id="sizeList">
+          <button type="button" class="px-4 py-2 rounded border text-sm hover:bg-gray-50 transition" data-size="S">S</button>
+          <button type="button" class="px-4 py-2 rounded border text-sm hover:bg-gray-50 transition" data-size="M">M</button>
+          <button type="button" class="px-4 py-2 rounded border text-sm hover:bg-gray-50 transition" data-size="L">L</button>
+          <button type="button" class="px-4 py-2 rounded border text-sm hover:bg-gray-50 transition" data-size="XL">XL</button>
+        </div>
+        
+        {{-- Panduan Ukuran --}}
+        <div id="sizeGuide" class="hidden mt-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h4 class="font-semibold text-blue-800 mb-3">📏 Panduan Ukuran</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-blue-200">
+                  <th class="text-left py-2 px-3 font-semibold text-blue-800">Ukuran</th>
+                  <th class="text-left py-2 px-3 font-semibold text-blue-800">Lingkar Dada</th>
+                  <th class="text-left py-2 px-3 font-semibold text-blue-800">Lingkar Pinggang</th>
+                  <th class="text-left py-2 px-3 font-semibold text-blue-800">Panjang</th>
+                </tr>
+              </thead>
+              <tbody class="text-gray-700">
+                <tr class="border-b border-blue-100">
+                  <td class="py-2 px-3 font-medium">S</td>
+                  <td class="py-2 px-3">88-92 cm</td>
+                  <td class="py-2 px-3">68-72 cm</td>
+                  <td class="py-2 px-3">65-68 cm</td>
+                </tr>
+                <tr class="border-b border-blue-100">
+                  <td class="py-2 px-3 font-medium">M</td>
+                  <td class="py-2 px-3">92-96 cm</td>
+                  <td class="py-2 px-3">72-76 cm</td>
+                  <td class="py-2 px-3">68-71 cm</td>
+                </tr>
+                <tr class="border-b border-blue-100">
+                  <td class="py-2 px-3 font-medium">L</td>
+                  <td class="py-2 px-3">96-100 cm</td>
+                  <td class="py-2 px-3">76-80 cm</td>
+                  <td class="py-2 px-3">71-74 cm</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-medium">XL</td>
+                  <td class="py-2 px-3">100-104 cm</td>
+                  <td class="py-2 px-3">80-84 cm</td>
+                  <td class="py-2 px-3">74-77 cm</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-3 text-xs text-blue-600">
+            💡 <strong>Tips:</strong> Ukur dengan meteran kain untuk hasil yang akurat. Jika ragu antara 2 ukuran, pilih yang lebih besar.
           </div>
         </div>
-      @endif
+      </div>
 
       {{-- Jumlah (pakai Alpine untuk ±) --}}
       <div class="mt-4">
@@ -201,6 +249,10 @@ function toggleSpec(){
   document.getElementById('specBody').classList.toggle('hidden');
 }
 
+function toggleSizeGuide(){
+  document.getElementById('sizeGuide').classList.toggle('hidden');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const wireChoice = (selector, hiddenIds) => {
     const wrap = document.querySelector(selector);
@@ -210,10 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', () => {
         const isColor = btn.hasAttribute('data-color');
         const attr = isColor ? 'data-color' : 'data-size';
-        // reset style
-        btns.forEach(b => b.classList.remove('ring-2','ring-blue-500'));
+        // reset style untuk buttons dalam grup yang sama
+        const groupBtns = wrap.querySelectorAll(`button[${attr}]`);
+        groupBtns.forEach(b => {
+          b.classList.remove('ring-2','ring-blue-500','bg-blue-100');
+          b.classList.add('hover:bg-gray-50');
+        });
         // set style active
-        btn.classList.add('ring-2','ring-blue-500');
+        btn.classList.add('ring-2','ring-blue-500','bg-blue-100');
+        btn.classList.remove('hover:bg-gray-50');
         // isi semua hidden target
         hiddenIds.forEach(id => {
           const el = document.getElementById(id);

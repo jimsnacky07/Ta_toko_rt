@@ -18,16 +18,20 @@ class PelangganController extends Controller
     {
         $query = User::query()
             ->where('level', 'user')     // filter hanya pelanggan (bukan admin/tailor)
-            ->withCount('pesanan');
+            ->withCount(['orders', 'pesanan']); // Count both new and old orders
 
         if (! $request->boolean('all')) {
-            // default: hanya yang punya pesanan
-            $query->whereHas('pesanan');
+            // default: hanya yang punya pesanan atau orders
+            $query->where(function($q) {
+                $q->whereHas('orders')
+                  ->orWhereHas('pesanan');
+            });
         }
 
         // pesanan terakhir untuk kolom status/aksi di tabel
         $pelanggan = $query
             ->with([
+                'orders' => fn($q) => $q->latest()->limit(1),
                 'pesanan' => fn($q) => $q->latest()->limit(1),
                 // kalau perlu status bayar detail, bisa eager load juga:
                 // 'pesanan.pembayarans'
@@ -50,9 +54,13 @@ class PelangganController extends Controller
     {
         $customer = User::where('level', 'user')
             ->with([
+                'orders' => function ($q) {
+                    $q->latest()
+                      ->with(['orderItems.product']); // new order items & products
+                },
                 'pesanan' => function ($q) {
                     $q->latest()
-                      ->with(['detailPesanan.product']); // item & produk per pesanan
+                      ->with(['detailPesanan.product']); // legacy order items & products
                 },
             ])
             ->findOrFail($id);

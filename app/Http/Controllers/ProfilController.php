@@ -16,31 +16,35 @@ class ProfilController extends Controller
     }
 
     /**
-     * Tampilkan form edit user
+     * Tampilkan form edit profil user yang sedang login
      */
-    public function edit($id)
+    public function edit()
     {
-        $user = User::findOrFail($id);
-        return view('profil.edit', compact('user'));
+        $user = Auth::user();
+        return view('user.profil.edit', compact('user'));
     }
 
     /**
-     * Update data user
+     * Update profil user yang sedang login
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
-            'nama' => 'required',
-            'no_telp' => 'required',
-            'alamat' => 'required',
-            'level' => 'required'
+            'nama' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . Auth::id(),
+            'no_telp' => 'required|string|max:20',
+            'alamat' => 'required|string|max:500',
         ]);
 
-        $user = User::findOrFail($id);
-        $user->update($request->all());
+        $user = Auth::user();
+        $user->update([
+            'nama' => $request->nama,
+            'email' => $request->email,
+            'no_telp' => $request->no_telp,
+            'alamat' => $request->alamat,
+        ]);
 
-        return redirect()->route('profil.index')->with('success', 'Data user berhasil diupdate.');
+        return redirect()->route('profil.index')->with('success', 'Profil berhasil diperbarui!');
     }
 
     /**

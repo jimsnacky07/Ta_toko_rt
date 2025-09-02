@@ -14,8 +14,9 @@ class Product extends Model
 
     protected $fillable = [
         'name','price','image',
-        'kategori','bahan','motif','dikirim_dari',
-        'deskripsi',
+        'kategory','bahan','motif','dikirim_dari',
+        'deskripsi','description','warna','ukuran',
+        'deskripsi_ukuran','colors','sizes','fabric_type','is_preorder',
         // tambahkan kolom lain kalau nanti ada
     ];
 
@@ -62,5 +63,10 @@ class Product extends Model
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function pesanan()
+    {
+        return $this->hasMany(Pesanan::class, 'product_id');
     }
 }
