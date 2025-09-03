@@ -10,7 +10,7 @@ class RegisterController extends Controller
 {
     public function show()
     {
-        return view('auth.register'); 
+        return view('auth.register');
     }
 
     public function register(Request $request)
@@ -18,19 +18,20 @@ class RegisterController extends Controller
         $request->validate([
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|min:8',
-            'nama'     => 'required',
-            'no_telp'  => 'required',
+            'name'     => 'required',
+            'no_telp'  => 'nullable',
             'alamat'   => 'required',
-            'level'    => 'required'
         ]);
+
+        dd($request->all());
 
         User::create([
             'email'    => $request->email,
             'password' => Hash::make($request->password),
-            'nama'     => $request->nama,
+            'name'     => $request->name,
             'no_telp'  => $request->no_telp,
             'alamat'   => $request->alamat,
-            'level'    => $request->level
+            'level'    => 'user', // default level user
         ]);
 
         return redirect('/login')->with('success', 'Registrasi berhasil!');

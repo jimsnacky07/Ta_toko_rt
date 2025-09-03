@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
+use Illuminate\Support\Facades\Log;
 
 // Midtrans (untuk redirect & token)
 use Midtrans\Config as MidtransConfig;
@@ -98,14 +99,14 @@ class KeranjangController extends Controller
             }
 
             if ($it['type'] === 'prod') {
-                $it['id']        = (string)($it['id'] ?? ($it['row_id'] ?? $it['product_id'] ?? 'prod:'.Str::upper(Str::random(10))));
+                $it['id']        = (string)($it['id'] ?? ($it['row_id'] ?? $it['product_id'] ?? 'prod:' . Str::upper(Str::random(10))));
                 $it['qty']       = max(1, (int)($it['qty'] ?? 1));
                 $it['harga']     = $this->toInt($it['harga'] ?? ($it['price'] ?? 0));
                 $it['gambar']    = $it['gambar'] ?? ($it['image'] ?? null);
                 $it['image']     = $it['image']  ?? ($it['gambar'] ?? null);
-                $it['product_id']= (string)($it['product_id'] ?? '');
+                $it['product_id'] = (string)($it['product_id'] ?? '');
             } else { // 'oc'
-                $it['id']     = (string)($it['id'] ?? ($it['row_id'] ?? 'oc:'.Str::upper(Str::random(10))));
+                $it['id']     = (string)($it['id'] ?? ($it['row_id'] ?? 'oc:' . Str::upper(Str::random(10))));
                 $it['jumlah'] = max(1, (int)($it['jumlah'] ?? 1));
                 $base   = $this->toInt($it['prices']['base_price']  ?? 0);
                 $add    = $this->toInt($it['prices']['fabric_add']  ?? 0);
@@ -126,11 +127,11 @@ class KeranjangController extends Controller
 
         $totalProd = collect($keranjang)
             ->where('type', 'prod')
-            ->sum(fn ($i) => $this->toInt($i['harga'] ?? 0) * (int)($i['qty'] ?? 1));
+            ->sum(fn($i) => $this->toInt($i['harga'] ?? 0) * (int)($i['qty'] ?? 1));
 
         $totalOC = collect($keranjang)
             ->where('type', 'oc')
-            ->sum(fn ($i) => $this->toInt($i['prices']['grand_total'] ?? 0));
+            ->sum(fn($i) => $this->toInt($i['prices']['grand_total'] ?? 0));
 
         $grand = $totalProd + $totalOC;
 
@@ -222,7 +223,7 @@ class KeranjangController extends Controller
     {
         $data = $r->validate([
             'id'  => 'required',
-            'aksi'=> 'required|in:inc,dec,set',
+            'aksi' => 'required|in:inc,dec,set',
             'qty' => 'nullable|integer|min:1',
         ]);
 
@@ -237,7 +238,6 @@ class KeranjangController extends Controller
                 elseif ($data['aksi'] === 'dec') $q = max(1, $q - 1);
                 else $q = max(1, (int)($data['qty'] ?? 1));
                 $it['qty'] = $q;
-
             } else { // 'oc'
                 $q = (int)($it['jumlah'] ?? 1);
                 if ($data['aksi'] === 'inc') $q++;
@@ -266,7 +266,7 @@ class KeranjangController extends Controller
         $keranjang = $this->ambilKeranjang($r);
         $keranjang = array_values(array_filter(
             $keranjang,
-            fn ($it) => (string)($it['id'] ?? '') !== (string)$id
+            fn($it) => (string)($it['id'] ?? '') !== (string)$id
         ));
         $this->simpanKeranjang($r, $keranjang);
         return back()->with('success', 'Item dihapus.');
@@ -308,7 +308,7 @@ class KeranjangController extends Controller
 
         $keranjang[] = [
             'type'       => 'prod',
-            'id'         => 'prod:'.Str::upper(Str::random(10)),
+            'id'         => 'prod:' . Str::upper(Str::random(10)),
             'product_id' => (string)$productId,
             'nama'       => $nama,
             'harga'      => $harga,
@@ -349,7 +349,7 @@ class KeranjangController extends Controller
                 $items[] = [
                     'id'      => $rid,
                     'title'   => 'Order Custom',
-                    'subtitle'=> trim(($row['jenis_pakaian'] ?? '-') . ' — ' . ($row['jenis_kain'] ?? '-')),
+                    'subtitle' => trim(($row['jenis_pakaian'] ?? '-') . ' — ' . ($row['jenis_kain'] ?? '-')),
                     'image'   => asset('images/placeholder.png'),
                     'qty'     => $qty,
                     'unit'    => $unit,
@@ -363,7 +363,7 @@ class KeranjangController extends Controller
                 $items[] = [
                     'id'      => $rid,
                     'title'   => $row['nama'] ?? 'Produk',
-                    'subtitle'=> trim(($row['color'] ?? '') . ' ' . ($row['size'] ?? '')),
+                    'subtitle' => trim(($row['color'] ?? '') . ' ' . ($row['size'] ?? '')),
                     'image'   => $row['image'] ?? $row['gambar'] ?? asset('images/placeholder.png'),
                     'qty'     => $qty,
                     'unit'    => $unit,
@@ -481,7 +481,7 @@ class KeranjangController extends Controller
 
         $params = [
             'transaction_details' => [
-                'order_id'     => 'ORD-' . now()->format('YmdHis') . '-' . rand(100,999),
+                'order_id'     => 'ORD-' . now()->format('YmdHis') . '-' . rand(100, 999),
                 'gross_amount' => $total,
             ],
             'item_details'     => $items,
@@ -542,14 +542,14 @@ class KeranjangController extends Controller
                 $price = $this->toInt($row['harga'] ?? 0);
                 $name  = (string)($row['nama'] ?? 'Produk');
                 $productId = $row['product_id'] ?? null;
-                
+
                 $itemDetails[] = [
                     'id'       => (string)($row['id'] ?? Str::uuid()),
                     'price'    => $price,
                     'quantity' => $qty,
                     'name'     => $name,
                 ];
-                
+
                 // Data untuk database
                 $orderItems[] = [
                     'type' => 'prod',
@@ -562,21 +562,20 @@ class KeranjangController extends Controller
                     'total_price' => $price * $qty,
                     'special_request' => null,
                 ];
-                
-                $gross += $price * $qty;
 
+                $gross += $price * $qty;
             } else {
                 $qty   = (int)($row['jumlah'] ?? 1);
                 $price = $this->toInt($row['prices']['total_price'] ?? 0);
-                $name  = trim(($row['jenis_pakaian'] ?? 'Order Custom').' — '.($row['jenis_kain'] ?? '-'));
-                
+                $name  = trim(($row['jenis_pakaian'] ?? 'Order Custom') . ' — ' . ($row['jenis_kain'] ?? '-'));
+
                 $itemDetails[] = [
                     'id'       => (string)($row['id'] ?? Str::uuid()),
                     'price'    => $price,
                     'quantity' => $qty,
                     'name'     => $name,
                 ];
-                
+
                 // Data untuk database
                 $orderItems[] = [
                     'type' => 'custom',
@@ -589,7 +588,7 @@ class KeranjangController extends Controller
                     'total_price' => $price * $qty,
                     'special_request' => $row['request'] ?? null,
                 ];
-                
+
                 $gross += $price * $qty;
             }
         }
@@ -600,15 +599,15 @@ class KeranjangController extends Controller
 
         // Generate unique order code
         $orderCode = 'ORDER' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-        
-        \Log::info('KeranjangController.pay() - Starting checkout process', [
+
+        Log::info('KeranjangController.pay() - Starting checkout process', [
             'user_id' => Auth::id(),
             'user_email' => Auth::user()->email,
             'order_code' => $orderCode,
             'total_amount' => $gross,
             'items_count' => count($orderItems)
         ]);
-        
+
         // Simpan data order ke session untuk digunakan di webhook
         $user = Auth::user();
         $pendingOrder = [
@@ -618,12 +617,12 @@ class KeranjangController extends Controller
             'total_amount' => $gross,
             'selected_cart_ids' => $selectedIds, // Untuk menghapus dari keranjang setelah sukses
         ];
-        
+
         // Simpan ke session dengan lifetime yang lebih lama
         session(['pending_order' => $pendingOrder]);
-        
+
         // Log the session data for debugging
-        \Log::info('Pending order saved to session', [
+        Log::info('Pending order saved to session', [
             'session_id' => session()->getId(),
             'user_id' => $user->id,
             'user_email' => $user->email,
@@ -654,9 +653,9 @@ class KeranjangController extends Controller
                 'phone'      => $phone,
             ],
             'callbacks' => [
-                'finish'   => route('midtrans.finish'),
-                'unfinish' => route('midtrans.unfinish'),
-                'error'    => route('midtrans.error'),
+                'finish'   => route('payment.finish'),
+                'unfinish' => route('payment.unfinish'),
+                'error'    => route('payment.error'),
             ],
         ];
 

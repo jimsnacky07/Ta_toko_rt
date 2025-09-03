@@ -12,28 +12,19 @@ class DataUkuranBadan extends Model
     protected $table = 'data_ukuran_badan';  // Nama tabel yang sesuai
 
     protected $fillable = [
-        'pesanan_id', 
-        'lingkaran_siku', 
+        // Kolom yang benar sesuai skema toko_rt.sql
+        'user_id',
         'lingkaran_dada',
-        'lingkaran_kaki_bawah',
-        'lingkaran_leher',
-        'lingkaran_lutut',
-        'lingkaran_paha',
-        'lingkaran_panjang_lengan',
         'lingkaran_pinggang',
         'lingkaran_pinggul',
-        'lingkaran_ujung_tangan',
-        'panjang_celana',
-        'panjang_bahu',
+        'lingkaran_leher',
+        'lingkaran_lengan',
+        'lingkaran_paha',
+        'lingkaran_lutut',
         'panjang_baju',
-        'panjang_pisik',
+        'panjang_lengan',
+        'panjang_celana',
         'panjang_rok',
-        'panjang_tangan'
+        'lebar_bahu',
     ];
-
-    // Relasi dengan tabel pesanan
-    public function pesanan()
-    {
-        return $this->belongsTo(Pesanan::class);
-    }
 }

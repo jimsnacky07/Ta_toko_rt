@@ -15,56 +15,142 @@ use Illuminate\Support\Facades\Auth;
 
 class PesananController extends Controller
 {
-    public function pembayaran(Request $request)
+    /**
+     * Buat order produk dan simpan ke database sebelum pembayaran Midtrans
+     * POST /pesanan/store
+     */
+    public function store(Request $request)
     {
-        // (Opsional) kalau memang ada pesanan_id
-        $pesanan = $request->pesanan_id ? Order::find($request->pesanan_id) : null;
-        $ukuran  = $pesanan ? DataUkuranBadan::where('pesanan_id', $pesanan->id)->first() : null;
+        Log::info('[PESANAN] Mulai proses pembuatan order produk', $request->all());
 
-        // >>> AMBIL ANGKA HARGA DARI FORM (hidden input)
-        // Pastikan di form 'order_custom.blade.php' ada input hidden: base, add, unitTotal, grand
-        $base      = (int) preg_replace('/[^\d]/', '', $request->input('base', 0));
-        $add       = (int) preg_replace('/[^\d]/', '', $request->input('add', 0));
-        $unitTotal = (int) preg_replace('/[^\d]/', '', $request->input('unitTotal', 0));
-        $grand     = (int) preg_replace('/[^\d]/', '', $request->input('grand', 0));
+        Log::info('[PESANAN] [DEBUG] Request masuk ke store', $request->all());
 
-        return view('user.pesanan.konfirmasi', [
-            'jenis_pakaian'    => $request->jenis_pakaian,
-            'jenis_kain'       => $request->jenis_kain,
-            'request_customer' => $request->request,      // atau $request->request_customer kalau itu nama fieldnya
-            'gambar'           => $request->gambar_custom,
-            'ukuran'           => $ukuran,
+        // Debug: cek apakah request method POST dan field product_id ada
+        if ($request->method() !== 'POST') {
+            Log::warning('[PESANAN] [DEBUG] Request bukan POST', ['method' => $request->method()]);
+        }
+        if (!$request->has('product_id')) {
+            Log::warning('[PESANAN] [DEBUG] Field product_id tidak ada di request', $request->all());
+        }
 
-            // >>> KIRIM KE VIEW (ini yang dipakai oleh konfirmasi.blade.php)
-            'base'       => $base,
-            'add'        => $add,
-            'unitTotal'  => $unitTotal,
-            'grand'      => $grand,
+        // Validasi
+        Log::info('[PESANAN] [DEBUG] Mulai validasi');
+        $data = $request->validate([
+            'product_id'   => 'required|integer|exists:products,id',
+            'qty'          => 'required|integer|min:1',
+            'size'         => 'nullable|string',
+            'color'        => 'nullable|string',
+            'notes'        => 'nullable|string',
         ]);
+
+        Log::info('[PESANAN] Validasi sukses', $data);
+
+        $product = \App\Models\Product::findOrFail($data['product_id']);
+        $userId = Auth::id();
+        $totalAmount = $product->price * $data['qty'];
+
+        // Simpan order produk dengan order_id format 'order{ID}'
+        $order = Order::create([
+            'user_id'           => $userId,
+            'kode_pesanan'      => null, // diisi setelah dapat ID
+            'order_code'        => null, // diisi setelah dapat ID
+            'status'            => 'menunggu',
+            'total_harga'       => $totalAmount,
+            'total_amount'      => $totalAmount,
+            'metode_pembayaran' => null,
+        ]);
+
+        // Update order_code dan kode_pesanan setelah ID didapat
+        $orderCode = 'order' . $order->id;
+        $order->order_code = $orderCode;
+        $order->kode_pesanan = $orderCode;
+        $order->save();
+
+        Log::info('[PESANAN] Order produk berhasil dibuat', [
+            'order_id' => $order->id,
+            'order_code' => $orderCode,
+            'fields' => $order->toArray()
+        ]);
+
+        $item = \App\Models\OrderItem::create([
+            'order_id'        => $order->id,
+            'product_id'      => $product->id,
+            'garment_type'    => $product->name,
+            'fabric_type'     => $product->fabric_type ?? '-',
+            'size'            => $data['size'] ?? null,
+            'price'           => $product->price,
+            'quantity'        => $data['qty'],
+            'total_price'     => $totalAmount,
+            'special_request' => $data['notes'] ?? null,
+            'image'           => $product->image ?? null,
+            'status'          => 'pending',
+        ]);
+
+        Log::info('[PESANAN] Order item produk berhasil dibuat', [
+            'order_item_id' => $item->id,
+            'order_id' => $order->id,
+            'fields' => $item->toArray()
+        ]);
+
+        // Simpan order ke session pending_order (untuk Midtrans)
+        $pendingOrderArr = [
+            'user_id'      => $userId,
+            'user_email'   => Auth::user() ? Auth::user()->email : null,
+            'order_code'   => $orderCode,
+            'total_amount' => $totalAmount,
+            'items'        => [[
+                'product_id'      => $product->id,
+                'garment_type'    => $product->name,
+                'fabric_type'     => $product->fabric_type ?? '-',
+                'size'            => $data['size'] ?? null,
+                'price'           => $product->price,
+                'quantity'        => $data['qty'],
+                'total_price'     => $totalAmount,
+                'special_request' => $data['notes'] ?? null,
+            ]],
+            'selected_cart_ids' => [$product->id],
+        ];
+        session(['pending_order' => $pendingOrderArr]);
+        Log::debug('[PESANAN] Simpan session pending_order', $pendingOrderArr);
+
+        return redirect()->route('user.pesanan')->with('success', 'Order berhasil dibuat. Silakan lanjutkan pembayaran.');
     }
 
     // (Bisa dipakai kalau akses langsung /pesanan/konfirmasi tanpa form)
-    public function konfirmasi()
+    /**
+     * Update order status setelah respon dari Midtrans (webhook/callback)
+     * POST /pesanan/update-status
+     */
+    public function updateStatus(Request $request)
     {
-        return view('user.pesanan.konfirmasi');
+        $orderId = $request->input('order_id');
+        $status  = $request->input('status');
+        $paymentType = $request->input('payment_type');
+
+        $order = Order::find($orderId);
+        if (!$order) {
+            Log::error('[PESANAN] Order tidak ditemukan saat update status', ['order_id' => $orderId]);
+            return response()->json(['error' => 'Order not found'], 404);
+        }
+
+        $oldStatus = $order->status;
+        $order->status = $status;
+        if ($paymentType) {
+            $order->metode_pembayaran = $paymentType;
+        }
+        $order->save();
+
+        Log::info('[PESANAN] Status order diupdate setelah Midtrans', [
+            'order_id' => $orderId,
+            'old_status' => $oldStatus,
+            'new_status' => $status,
+            'payment_type' => $paymentType,
+        ]);
+
+        return response()->json(['ok' => true]);
     }
 
-    // public function showOrders(Request $request)
-    // {
-    //     $tab = $request->get('tab', 'all');
-        
-    //     // Ambil pesanan berdasarkan tab tertentu
-    //     if ($tab === 'unpaid') {
-    //         $orders = Order::whereHas('payment', function ($query) {
-    //             $query->where('transaction_status', 'UNPAID');
-    //         })->get();
-    //     } else {
-    //         // Untuk tab 'all' atau 'orders', ambil semua pesanan
-    //         $orders = Order::all();
-    //     }
 
-    //     return view('user.pesanan.pusat_pesanan', compact('orders'));  // Mengirim data pesanan ke view
-    // }
 
     public function showOrders(Request $request)
     {
@@ -77,8 +163,8 @@ class PesananController extends Controller
         }
 
         $q = Order::where('user_id', Auth::id())
-                  ->with('orderItems')
-                  ->latest();
+            ->with('orderItems')
+            ->latest();
 
         if ($tab === 'unpaid') {
             $q->where('status', 'pending');
@@ -90,74 +176,78 @@ class PesananController extends Controller
     }
 
 
-     public function index(Request $request)
-{
-    $userId = Auth::id();
-    $user   = Auth::user();
+    public function index(Request $request)
+    {
+        $userId = Auth::id();
+        $user   = Auth::user();
 
-    Log::info('PesananController index called', [
-        'user_id' => $userId,
-        'user_email' => $user?->email,
-        'user_name' => $user->nama ?? 'No user',
-        'session_id' => session()->getId(),
-    ]);
-
-    if (!Schema::hasTable('orders')) {
-        Log::warning('Orders table does not exist');
-        $orders = new \Illuminate\Pagination\LengthAwarePaginator(
-            collect(), 0, 10, 1, ['path' => request()->url()]
-        );
-        return view('user.pesanan.pusat_pesanan', compact('orders'));
-    }
-
-    try {
-        DB::connection()->getPdo();
-        Log::info('Database connection successful');
-    } catch (\Throwable $e) {
-        Log::error('Database connection failed', ['error' => $e->getMessage()]);
-    }
-
-    // ===== FIX DISINI: pakai alias kolom yg sesuai dengan DB =====
-    $query = Order::where('user_id', $userId)
-        ->with('orderItems') // jangan batasi select agar FK aman (order_id/pesanan_id)
-        ->select([
-            'id',
-            'user_id',
-            'kode_pesanan as order_code', // alias dari kolom DB
-            'status',
-            'total_harga as total_amount', // alias dari kolom DB
-            'created_at',
-            'updated_at',
-        ])
-        ->latest();
-
-    Log::info('Orders query', ['sql' => $query->toSql(), 'bindings' => $query->getBindings()]);
-
-    $orders = $query->get();
-
-    Log::info('Orders retrieved', [
-        'user_id'      => $userId,
-        'orders_count' => $orders->count(),
-        'order_ids'    => $orders->pluck('id')->all(),
-        'order_codes'  => $orders->pluck('order_code')->all(),
-    ]);
-
-    if ($orders->isEmpty()) {
-        $allOrdersCount = Order::count();
-        // ambil sample dgn nama kolom asli
-        $sampleOrder = Order::select('id','user_id','kode_pesanan','status')->first();
-
-        Log::warning('No orders found for user', [
+        Log::info('PesananController index called', [
             'user_id' => $userId,
-            'total_orders_in_db' => $allOrdersCount,
-            'sample_order' => $sampleOrder ? [
-                'id'          => $sampleOrder->id,
-                'user_id'     => $sampleOrder->user_id,
-                'order_code'  => $sampleOrder->kode_pesanan, // map manual
-                'status'      => $sampleOrder->status,
-            ] : null,
+            'user_email' => $user?->email,
+            'user_name' => $user->nama ?? 'No user',
+            'session_id' => session()->getId(),
         ]);
-    }
+
+        if (!Schema::hasTable('orders')) {
+            Log::warning('Orders table does not exist');
+            $orders = new \Illuminate\Pagination\LengthAwarePaginator(
+                collect(),
+                0,
+                10,
+                1,
+                ['path' => request()->url()]
+            );
+            return view('user.pesanan.pusat_pesanan', compact('orders'));
+        }
+
+        try {
+            DB::connection()->getPdo();
+            Log::info('Database connection successful');
+        } catch (\Throwable $e) {
+            Log::error('Database connection failed', ['error' => $e->getMessage()]);
+        }
+
+        // ===== FIX DISINI: pakai alias kolom yg sesuai dengan DB =====
+        $query = Order::where('user_id', $userId)
+            ->with('orderItems') // jangan batasi select agar FK aman (order_id/pesanan_id)
+            ->select([
+                'id',
+                'user_id',
+                'kode_pesanan as order_code', // alias dari kolom DB
+                'status',
+                'total_harga as total_amount', // alias dari kolom DB
+                'created_at',
+                'updated_at',
+            ])
+            ->latest();
+
+        Log::info('Orders query', ['sql' => $query->toSql(), 'bindings' => $query->getBindings()]);
+
+        $orders = $query->get();
+
+        Log::info('Orders retrieved', [
+            'user_id'      => $userId,
+            'orders_count' => $orders->count(),
+            'order_ids'    => $orders->pluck('id')->all(),
+            'order_codes'  => $orders->pluck('order_code')->all(),
+        ]);
+
+        if ($orders->isEmpty()) {
+            $allOrdersCount = Order::count();
+            // ambil sample dgn nama kolom asli
+            $sampleOrder = Order::select('id', 'user_id', 'kode_pesanan', 'status')->first();
+
+            Log::warning('No orders found for user', [
+                'user_id' => $userId,
+                'total_orders_in_db' => $allOrdersCount,
+                'sample_order' => $sampleOrder ? [
+                    'id'          => $sampleOrder->id,
+                    'user_id'     => $sampleOrder->user_id,
+                    'order_code'  => $sampleOrder->kode_pesanan, // map manual
+                    'status'      => $sampleOrder->status,
+                ] : null,
+            ]);
+        }
         return view('user.pesanan.pusat_pesanan', compact('orders'));
     }
 
@@ -204,75 +294,4 @@ class PesananController extends Controller
         $item = $order->items()->first(); // Ambil item pertama (sesuaikan dengan logika)
         return $item ? $item->garment_type : null;
     }
-
-   public function store(Request $request)
-{
-    // logging request & database yang dipakai
-    Log::info('PESANAN STORE INPUT', $request->all());
-    Log::info('DB USING', ['db' => DB::connection()->getDatabaseName()]);
-
-    // validasi input
-    $data = $request->validate([
-        'nama_pelanggan'    => 'required|string|max:100',
-        'telepon_pelanggan' => 'nullable|string|max:30',
-        'items'             => 'required|array', // items wajib ada
-        'jumlah'            => 'required|numeric',
-    ]);
-
-    // simpan ke database sesuai struktur tabel kamu
-    $pesanan = Order::create([
-        'order_code'        => 'ORD' . time(),
-        'user_id'           => Auth::id(),
-        'status'            => 'pending',
-        'total_amount'      => $data['jumlah'],
-    ]);
-
-    // Simpan detail pesanan sebagai order items
-    foreach ($data['items'] as $item) {
-        \App\Models\OrderItem::create([
-            'order_id' => $pesanan->id,
-            'product_id' => null, // Custom order tidak punya product_id
-            'garment_type' => $item['jenis_pakaian'] ?? 'Custom Order',
-            'fabric_type' => $item['jenis_kain'] ?? 'Custom Fabric',
-            'size' => $item['size'] ?? 'Custom Size',
-            'price' => $item['price'],
-            'quantity' => $item['quantity'],
-            'total_price' => $item['quantity'] * $item['price'],
-            'special_request' => $item['catatan_khusus'] ?? null,
-        ]);
-    }
-
-    // logging id pesanan yang berhasil dibuat
-    Log::info('PESANAN CREATED', ['id' => $pesanan->id]);
-
-    return back()->with('success', 'Pesanan berhasil disimpan! ID: '.$pesanan->id);
-}
-
-
-    public function show($id)
-    {
-        // Ambil data pesanan berdasarkan ID
-        $pesanan = Order::findOrFail($id);
-
-        // Return ke view dengan data pesanan
-        return view('pesanan.show', compact('pesanan'));
-    }
-
-    public function sukses()
-    {
-        return view('pesanan.sukses');
-    }
-
-    public function pembayaranBerhasil(Request $request)
-    {
-        // Pastikan status pembayaran berhasil diperbarui
-        $order = Order::findOrFail($request->order_id);
-        $order->status = 'Lunas';  // Atau sesuai dengan status yang kamu pakai
-        $order->save();
-        
-        // Redirect ke halaman detail pesanan
-        return redirect()->route('pesanan.sukses');
-    }
-
-    
 }

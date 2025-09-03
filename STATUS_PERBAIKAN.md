@@ -1,99 +1,144 @@
-# ✅ Status Perbaikan Sistem Toko RT
+# STATUS PERBAIKAN SISTEM PEMBAYARAN
 
-## 🔧 Masalah yang Telah Diperbaiki
+## Masalah yang Ditemukan
 
-### 1. **Route Admin Galeri Jahit** ✅
-- **Masalah**: Route `[admin.galeri.jahit.index]` not defined
-- **Solusi**: Memperbaiki nama route di `routes/web.php` dengan prefix `admin.`
-- **Status**: **SELESAI** - Route sekarang terdaftar dengan benar
+### 1. **CheckoutController::createSnapToken() Tidak Lengkap**
+- Method ini tidak mengembalikan response
+- Tidak membuat order di database
+- Hanya menyimpan data ke session
 
-### 2. **Login Admin System** ✅
-- **Masalah**: Admin tidak bisa akses dashboard dan halaman pesanan
-- **Solusi**: 
-  - Perbaiki route `admin.daftar.pesanan` 
-  - Update AdminController untuk level user yang benar
-  - Clear cache routing
-- **Status**: **SELESAI** - Admin bisa login dan akses semua halaman
+### 2. **Alur Pembayaran Terputus**
+- Halaman checkout memanggil `createSnapToken` 
+- Method ini hanya menyimpan ke session, tidak membuat order di DB
+- Webhook Midtrans mencoba mencari order yang tidak ada di DB
+- Akhirnya webhook membuat order baru dari session
 
-### 3. **Database User** ✅
-- **Masalah**: User meminta jangan ganggu database user yang sudah ada
-- **Solusi**: Tidak mengubah data user yang sudah ada, hanya memperbaiki sistem routing dan controller
-- **Status**: **AMAN** - Database user tetap utuh
+### 3. **Konflik Route**
+- Ada multiple route untuk `createSnapToken` yang bisa menyebabkan kebingungan
 
-### 4. **Pembayaran ke Database** ✅
-- **Masalah**: Pesanan tidak masuk database setelah pembayaran sukses
-- **Solusi**: Sistem webhook Midtrans sudah diperbaiki sebelumnya
-- **Status**: **BERFUNGSI** - Pesanan otomatis masuk database
+## Perbaikan yang Telah Dilakukan
 
-## 🎯 Sistem yang Sekarang Berfungsi
+### 1. **Memperbaiki CheckoutController::createSnapToken()**
+✅ **DILAKUKAN**: Method sekarang:
+- Membuat order di database sebelum generate snap token
+- Membuat order items di database
+- Menyimpan data ke session untuk webhook
+- Mengembalikan snap token yang valid
 
-### **Admin Dashboard**
-- ✅ Login admin: `admin@tokort.com` / `zxcvbnm123`
-- ✅ Dashboard admin dengan statistik pesanan
-- ✅ Daftar pesanan dengan filter dan pencarian
-- ✅ Galeri jahit untuk kelola produk
-- ✅ User management
+### 2. **Memperbaiki MidtransController::notification()**
+✅ **DILAKUKAN**: Webhook sekarang:
+- Mencari order berdasarkan order_code atau kode_pesanan
+- Tidak membuat order duplikat jika sudah ada di database
+- Hanya update status order yang sudah ada
+- Membuat order baru hanya jika benar-benar tidak ditemukan
 
-### **User/Customer System**
-- ✅ Login user: `siti@user.com` / `zxcvbnm123` (dan 8 user lainnya)
-- ✅ Browse produk dan detail
-- ✅ Keranjang belanja
-- ✅ Checkout dan pembayaran Midtrans
-- ✅ **Pesanan otomatis masuk database setelah bayar**
-- ✅ Lihat status pesanan di "Pesanan Saya"
+### 3. **Membersihkan Route Duplikat**
+✅ **DILAKUKAN**: Menghapus route duplikat:
+- Menghapus `Route::post('/create-snap-token', [MidtransController::class, 'createSnapToken'])`
+- Menyisakan hanya satu route utama: `Route::post('/midtrans/create-snap-token', [CheckoutController::class, 'createSnapToken'])`
 
-### **Tailor System**
-- ✅ Login tailor: `tailor@tokort.com` / `zxcvbnm123`
-- ✅ Dashboard tailor
-- ✅ Update status produksi pesanan
+## Alur Pembayaran yang Benar (Setelah Perbaikan)
 
-## 🚀 Cara Menggunakan
-
-### **Test Login Admin:**
-1. Akses: `http://127.0.0.1:8000/login`
-2. Login: `admin@tokort.com` / `zxcvbnm123`
-3. Atau akses langsung: `http://127.0.0.1:8000/test-admin-login`
-
-### **Test Pembayaran:**
-1. Login sebagai user: `siti@user.com` / `zxcvbnm123`
-2. Pilih produk → Tambah ke keranjang
-3. Checkout → Bayar via Midtrans
-4. **Pesanan akan otomatis masuk database**
-5. Cek di admin dashboard atau "Pesanan Saya"
-
-## 📋 Route yang Diperbaiki
-
-```php
-// Admin Routes (Sudah Diperbaiki)
-Route::prefix('admin')->middleware(['auth', 'level:admin'])->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    Route::get('/daftar-pesanan', [AdminController::class, 'daftarPesanan'])->name('admin.daftar.pesanan');
-    
-    // Galeri Jahit - DIPERBAIKI
-    Route::resource('galeri-jahit', GaleriJahitController::class)
-        ->names([
-            'index'   => 'admin.galeri.jahit.index',  // ✅ FIXED
-            'create'  => 'admin.galeri.jahit.create',
-            'store'   => 'admin.galeri.jahit.store',
-            // ... dst
-        ]);
-});
+### 1. **User Klik "Lanjut ke Pembayaran"**
+```
+Halaman checkout → POST /midtrans/create-snap-token
 ```
 
-## 🔍 Debug & Testing URLs
+### 2. **CheckoutController::createSnapToken()**
+```
+1. Validasi input
+2. Buat Order di database (status: 'menunggu')
+3. Buat OrderItem di database
+4. Simpan data ke session (pending_order)
+5. Generate Snap Token dari Midtrans
+6. Return token ke frontend
+```
 
-- `/check-users` - Lihat semua user di database
-- `/debug-orders` - Debug data pesanan
-- `/test-admin-login` - Auto login admin
-- `/setup-all` - Reset database jika diperlukan
+### 3. **Frontend Menampilkan Snap Popup**
+```
+snap.pay(token, {
+    onSuccess: → redirect ke /midtrans/finish
+    onPending: → redirect ke /midtrans/unfinish  
+    onError: → redirect ke /midtrans/error
+})
+```
 
-## ✅ Konfirmasi Sistem Siap
+### 4. **Midtrans Webhook**
+```
+POST /midtrans/notification
+1. Cari order berdasarkan order_id
+2. Update status order (menunggu → diproses)
+3. Set paid_at timestamp
+4. Simpan metode pembayaran
+```
 
-**Semua sistem sudah diperbaiki dan berfungsi dengan baik:**
-- ✅ Admin bisa login dan akses semua halaman
-- ✅ Route galeri jahit sudah fixed
-- ✅ Database user tidak diganggu
-- ✅ Pembayaran → Database berfungsi
-- ✅ Cache sudah di-clear
+## Konfigurasi yang Diperlukan
 
-**Status: SISTEM SIAP DIGUNAKAN** 🎉
+### 1. **Environment Variables (.env)**
+```env
+MIDTRANS_SERVER_KEY=your_server_key_here
+MIDTRANS_CLIENT_KEY=your_client_key_here
+MIDTRANS_IS_PRODUCTION=false
+MIDTRANS_IS_SANITIZED=true
+MIDTRANS_IS_3DS=true
+```
+
+### 2. **Database Tables**
+✅ **SUDAH ADA**:
+- `orders` table dengan kolom yang diperlukan
+- `order_items` table dengan foreign key yang benar
+
+## Testing Checklist
+
+### 1. **Test Pembayaran Produk**
+- [ ] Login sebagai user
+- [ ] Pilih produk dan klik "Pesan Sekarang"
+- [ ] Isi form checkout
+- [ ] Klik "Lanjut ke Pembayaran"
+- [ ] Verifikasi order dibuat di database
+- [ ] Verifikasi snap popup muncul
+- [ ] Test pembayaran (success/pending/error)
+- [ ] Verifikasi status order terupdate
+
+### 2. **Test Webhook**
+- [ ] Pastikan webhook URL bisa diakses dari Midtrans
+- [ ] Test dengan data pembayaran sukses
+- [ ] Verifikasi order status terupdate
+- [ ] Verifikasi paid_at timestamp tersimpan
+
+## Log Monitoring
+
+### 1. **Checkout Process**
+```bash
+tail -f storage/logs/laravel.log | grep "CHECKOUT"
+```
+
+### 2. **Midtrans Webhook**
+```bash
+tail -f storage/logs/laravel.log | grep "MIDTRANS"
+```
+
+## Troubleshooting
+
+### 1. **Order Tidak Tersimpan**
+- Cek log: `storage/logs/laravel.log`
+- Cek database connection
+- Cek validasi input
+
+### 2. **Snap Token Error**
+- Cek konfigurasi Midtrans di .env
+- Cek server key dan client key
+- Cek network connectivity ke Midtrans
+
+### 3. **Webhook Tidak Diproses**
+- Cek webhook URL bisa diakses dari internet
+- Cek CSRF token (webhook harus tanpa CSRF)
+- Cek log webhook di Midtrans dashboard
+
+## Status: ✅ DIPERBAIKI
+
+Semua masalah utama telah diperbaiki. Sistem pembayaran sekarang:
+1. Membuat order di database sebelum pembayaran
+2. Tidak membuat order duplikat
+3. Memproses webhook dengan benar
+4. Mengupdate status order sesuai pembayaran

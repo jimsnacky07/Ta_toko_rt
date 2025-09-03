@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use App\Models\User;
 use App\Models\Product;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\Auth;
 
 // Opsional: kalau project-mu memang punya model-model ini
 use App\Models\Order;
@@ -178,7 +178,12 @@ class CheckoutController extends Controller
             'order_id'      => 'nullable|string',
         ]);
 
-        $data['order_id']      = $data['order_id']      ?? ('ORD-' . now()->format('YmdHis'));
+        // Untuk order custom, tetap gunakan format ORD-2025xxx
+        $isCustom = isset($data['order_id']) && str_starts_with(strtolower($data['order_id']), 'ord-');
+        if (!$isCustom) {
+            // Jika bukan custom, kosongkan order_id, nanti diisi oleh proses order produk
+            unset($data['order_id']);
+        }
         $data['pickup_method'] = $data['pickup_method'] ?? 'store';
 
         if (!empty($data['image'])) {
@@ -189,7 +194,7 @@ class CheckoutController extends Controller
         session(['checkout_data' => $data]);
 
         return redirect()->route('user.payment.show', [
-            'order_id'     => $data['order_id'],
+            'order_id'     => $data['order_id'] ?? '',
             'total'        => $data['total'],
             'product_name' => $data['product_name'],
             'image'        => $data['image'] ?? null,
@@ -221,7 +226,7 @@ class CheckoutController extends Controller
             );
 
             $items = collect($data['cart']);
-            $total = $items->sum(fn ($i) => intval($i['qty']) * intval($i['harga']));
+            $total = $items->sum(fn($i) => intval($i['qty']) * intval($i['harga']));
 
             $pesanan = $user->pesanan()->create([
                 'order_date'  => now()->toDateString(),
@@ -282,216 +287,188 @@ class CheckoutController extends Controller
      * POST /midtrans/create-snap-token
      * Simpan order pending -> minta Snap token -> kembalikan token
      */
-   public function createSnapToken(Request $request)
-{
-    // 1) VALIDASI (TANPA order_id dari form)
-    try {
+    public function createSnapToken(Request $request)
+    {
+        // 1) VALIDASI (TANPA order_id dari form)
         $validated = $request->validate([
-            'subtotal'        => ['required','integer','min:1'],
-            'shipping'        => ['required','integer','min:0'],
-            'total'           => ['required','integer','min:1'],
-            'product_name'    => ['required','string','max:100'],
-            'harga'           => ['required','integer','min:1'],
-            'qty'             => ['required','integer','min:1'],
-            'pickup_method'   => ['required','in:store,jnt'],
-            'customer_name'   => ['required','string','max:100'],
-            'customer_email'  => ['required','email','max:100'],
-            'customer_phone'  => ['required','string','max:20'],
+            'subtotal'        => ['required', 'integer', 'min:1'],
+            'shipping'        => ['required', 'integer', 'min:0'],
+            'total'           => ['required', 'integer', 'min:1'],
+            'product_name'    => ['required', 'string', 'max:100'],
+            'harga'           => ['required', 'integer', 'min:1'],
+            'qty'             => ['required', 'integer', 'min:1'],
+            'pickup_method'   => ['required', 'in:store,jnt'],
+            'customer_name'   => ['required', 'string', 'max:100'],
+            'customer_email'  => ['required', 'email', 'max:100'],
+            'customer_phone'  => ['required', 'string', 'max:20'],
+            'size'            => ['nullable', 'string', 'max:20'],
+            'notes'           => ['nullable', 'string', 'max:255'],
         ]);
-    } catch (\Illuminate\Validation\ValidationException $ve) {
-        return response()->json([
-            'message'  => 'Validasi gagal',
-            'errors'   => $ve->errors(),
-            'received' => $request->all(),
-        ], 422);
-    }
 
-    // 2) CAST angka + cek total
-    $subtotal = (int) $validated['subtotal'];
-    $shipping = (int) $validated['shipping'];
-    $total    = (int) $validated['total'];
-    $harga    = (int) $validated['harga'];
-    $qty      = (int) $validated['qty'];
-    $name     = (string) $validated['product_name'];
-
-    if ($total !== ($subtotal + $shipping)) {
-        return response()->json([
-            'message' => 'Total tidak sesuai (subtotal + shipping).',
-            'debug'   => compact('subtotal','shipping','total'),
-        ], 422);
-    }
-
-    // 3) SELALU bikin order_id unik di server
-    // format: ORD-YYYYMMDDHHIISSmmm-ABC123 (hingga milidetik + random)
-    $orderId = 'ORD-'.now()->format('YmdHisv').'-'.Str::upper(Str::random(6));
-
-    // (Opsional) pastikan unik terhadap tabel orders jika ada
-    if (class_exists(\App\Models\Order::class)) {
-        $tries = 0;
-        while (\App\Models\Order::where('order_id', $orderId)->exists() && $tries < 3) {
-            $orderId = 'ORD-'.now()->format('YmdHisv').'-'.Str::upper(Str::random(6));
-            $tries++;
-        }
-    }
-
-    // 4) Konfig Midtrans
-    \Midtrans\Config::$serverKey    = config('midtrans.server_key');
-    \Midtrans\Config::$isProduction = (bool) config('midtrans.is_production', false);
-    \Midtrans\Config::$isSanitized  = true;
-    \Midtrans\Config::$is3ds        = true;
-
-    if (empty(\Midtrans\Config::$serverKey)) {
-        return response()->json([
-            'message' => 'Server Key Midtrans belum di-set. Cek .env & config/midtrans.php',
-        ], 422);
-    }
-
-    // 5) Siapkan payload & customer
-    $customerName  = (string) $validated['customer_name'];
-    $customerEmail = (string) $validated['customer_email'];
-    $customerPhone = (string) $validated['customer_phone'];
-
-    $items = [
-        ['id' => 'item-1',   'price' => $harga,    'quantity' => $qty, 'name' => $name],
-    ];
-    if ($shipping > 0) {
-        $items[] = ['id' => 'shipping', 'price' => $shipping, 'quantity' => 1,  'name' => 'Ongkir'];
-    }
-
-    $params = [
-        'transaction_details' => [
-            'order_id'     => $orderId,
-            'gross_amount' => $total,
-        ],
-        'item_details' => $items,
-        'customer_details' => [
-            'first_name' => $customerName,
-            'email'      => $customerEmail,
-            'phone'      => $customerPhone,
-        ],
-    ];
-
-    // 6) SIMPAN ORDER "PENDING" KE DB (orders atau pesanan)
-    $orderInternal = null;
-    DB::beginTransaction();
-    try {
-        // coba ambil product_id dari session cart (jika ada)
-        $productId = null;
+        $subtotal = (int) $validated['subtotal'];
+        $shipping = (int) $validated['shipping'];
+        $total    = (int) $validated['total'];
+        $harga    = (int) $validated['harga'];
+        $qty      = (int) $validated['qty'];
+        $name     = (string) $validated['product_name'];
+        $orderId  = 'ORD-' . now()->format('YmdHisv') . '-' . Str::upper(Str::random(6));
+        $userId   = Auth::id();
+        $userEmail = Auth::user() ? Auth::user()->email : null;
         $cart = session('cart', []);
-        if (!empty($cart)) {
-            $productId = array_key_first($cart);
-        }
+        $items = [];
+        $selectedCartIds = [];
 
-        if (class_exists(\App\Models\Order::class)) {
-            // Tabel orders milikmu
-            $orderInternal = \App\Models\Order::create([
-                'order_id'       => $orderId,
-                'user_id'        => Auth::id(),
-                'customer_name'  => $customerName,
-                'customer_email' => $customerEmail,
-                'customer_phone' => $customerPhone,
-                'subtotal'       => $subtotal,
-                'shipping'       => $shipping,
-                'total'          => $total,
-                'pickup_method'  => $validated['pickup_method'],
-                'status'         => 'pending',
+        // Gunakan total dari form, bukan dari cart
+        $finalTotal = $total; // Simpan total dari form
+
+        // Validasi total tidak boleh 0
+        if ($finalTotal <= 0) {
+            Log::error('[CHECKOUT] Total amount tidak valid', [
+                'total' => $finalTotal,
+                'subtotal' => $subtotal,
+                'shipping' => $shipping
             ]);
-
-            if (class_exists(\App\Models\OrderItem::class)) {
-                \App\Models\OrderItem::create([
-                    'order_id'   => $orderInternal->id,
-                    'sku'        => 'item-1',
-                    'name'       => $name,
-                    'price'      => $harga,
-                    'qty'        => $qty,
-                    'line_total' => $harga * $qty,
-                    'product_id' => $productId,
-                ]);
-                if ($shipping > 0) {
-                    \App\Models\OrderItem::create([
-                        'order_id'   => $orderInternal->id,
-                        'sku'        => 'shipping',
-                        'name'       => 'Ongkir',
-                        'price'      => $shipping,
-                        'qty'        => 1,
-                        'line_total' => $shipping,
-                    ]);
-                }
-            }
-        } elseif (class_exists(\App\Models\Pesanan::class)) {
-    // cari user (kalau guest biarkan null/0 sesuai skema)
-    $userId = \Illuminate\Support\Facades\Auth::id();
-
-    // SIMPAN HEADER pesanan (tabel: pesanan)
-    $orderInternal = \App\Models\Pesanan::create([
-        'user_id'      => $userId,                       // penting utk "Nama Pemesan"
-        'order_id'     => $orderId,                      // kalau tabelmu punya kolom ini
-        'order_date'   => now()->toDateString(),         // dipakai kolom "Tanggal/Hari"
-        'status'       => 'menunggu',                    // agar tidak "Status Tidak Diketahui"
-        'total_harga'  => $total,
-    ]);
-
-    // SIMPAN DETAIL (tabel: detail_pesanan)
-    if (class_exists(\App\Models\DetailPesanan::class)) {
-        // ambil product id pertama dari cart (kalau ada)
-        $productId = null;
-        $cart = session('cart', []);
-        if (!empty($cart)) {
-            $productId = array_key_first($cart);
+            return response()->json(['error' => 'Total pembayaran tidak valid. Silakan coba lagi.'], 400);
         }
 
-        // kalau relasi ada:
+        if (!empty($cart)) {
+            $products = Product::whereIn('id', array_keys($cart))->get();
+            foreach ($products as $p) {
+                $qty = max(0, (int)($cart[$p->id] ?? 0));
+                if ($qty <= 0) continue;
+                $harga = (int)($p->harga ?? $p->price ?? 0);
+                if ($harga <= 0) continue;
+                $items[] = [
+                    'product_id'      => $p->id,
+                    'garment_type'    => $p->name ?? $p->nama ?? 'Produk',
+                    'fabric_type'     => $p->bahan ?? $p->fabric_type ?? '-',
+                    'size'            => $request->input('size', '-') ?? '-',
+                    'price'           => $harga,
+                    'quantity'        => $qty,
+                    'total_price'     => $harga * $qty,
+                    'special_request' => $request->input('notes', ''),
+                ];
+                $selectedCartIds[] = $p->id;
+            }
+        }
+
+        Log::info('[CHECKOUT] Order akan dibayar', [
+            'user_id' => $userId,
+            'user_email' => $userEmail,
+            'order_code' => $orderId,
+            'total_amount' => $finalTotal,
+            'items' => $items,
+        ]);
+
+        // 2) BUAT ORDER DI DATABASE
         try {
-            $orderInternal->details()->create([
-                'product_id'     => $productId,
-                'jumlah'         => $qty,
-                'harga_satuan'   => $harga,
-                'total_harga'    => $harga * $qty,
-                'catatan_khusus' => null,
+            $order = Order::create([
+                'user_id'           => $userId,
+                'kode_pesanan'      => $orderId,
+                'order_code'        => $orderId,
+                'status'            => 'menunggu',
+                'total_harga'       => $finalTotal,
+                'total_amount'      => $finalTotal,
+                'metode_pembayaran' => 'pending', // Akan diupdate oleh webhook sesuai pilihan user
             ]);
-        } catch (\Throwable $e) {
-            // kalau tidak ada relasi, create manual:
-            \App\Models\DetailPesanan::create([
-                'pesanan_id'     => $orderInternal->id,
-                'product_id'     => $productId,
-                'jumlah'         => $qty,
-                'harga_satuan'   => $harga,
-                'total_harga'    => $harga * $qty,
-                'catatan_khusus' => null,
+
+            Log::info('[CHECKOUT] Order berhasil dibuat di database', [
+                'order_id' => $order->id,
+                'order_code' => $orderId
             ]);
-        }
-    }
-}
-        DB::commit();
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        Log::error('[ORDER] gagal simpan order pending', ['msg' => $e->getMessage()]);
-        return response()->json(['message' => 'Gagal menyimpan order'], 422);
-    }
 
-    // 7) MINTA SNAP TOKEN & simpan ke order
-    try {
-        $snapToken = \Midtrans\Snap::getSnapToken($params);
-
-        if ($orderInternal) {
-            try {
-                $orderInternal->update(['snap_token' => $snapToken]);
-            } catch (\Throwable $e) {
-                // kolom snap_token bisa saja belum ada—abaikan
+            // 3) BUAT ORDER ITEMS
+            foreach ($items as $item) {
+                OrderItem::create([
+                    'order_id'        => $order->id,
+                    'product_id'      => $item['product_id'],
+                    'garment_type'    => $item['garment_type'],
+                    'fabric_type'     => $item['fabric_type'],
+                    'size'            => $item['size'],
+                    'price'           => $item['price'],
+                    'quantity'        => $item['quantity'],
+                    'total_price'     => $item['total_price'],
+                    'special_request' => $item['special_request'],
+                    'status'          => 'pending',
+                ]);
             }
+
+            Log::info('[CHECKOUT] Order items berhasil dibuat', [
+                'order_id' => $order->id,
+                'items_count' => count($items)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[CHECKOUT] Gagal membuat order di database', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Gagal membuat order: ' . $e->getMessage()], 500);
         }
 
-        return response()->json(['token' => $snapToken]);
-    } catch (\Throwable $e) {
-        Log::error('Midtrans error: '.$e->getMessage(), [
-            'params' => $params,
-            'trace'  => $e->getTraceAsString(),
-        ]);
-        return response()->json([
-            'message' => 'Midtrans error',
-            'error'   => $e->getMessage(),
-        ], 422);
-    }
-}
+        // 4) SIMPAN KE SESSION UNTUK WEBHOOK
+        $pendingOrderArr = [
+            'user_id'           => $userId,
+            'user_email'        => $userEmail,
+            'order_code'        => $orderId,
+            'total_amount'      => $finalTotal,
+            'items'             => $items,
+            'selected_cart_ids' => $selectedCartIds,
+        ];
+        session(['pending_order' => $pendingOrderArr]);
+        Log::debug('[CHECKOUT] Simpan session pending_order', $pendingOrderArr);
 
+        // 5) GENERATE SNAP TOKEN
+        try {
+            // Set Midtrans configuration
+            \Midtrans\Config::$serverKey = config('midtrans.server_key');
+            \Midtrans\Config::$clientKey = config('midtrans.client_key');
+            \Midtrans\Config::$isProduction = config('midtrans.is_production');
+            \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
+            \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
+
+            $params = [
+                'transaction_details' => [
+                    'order_id'     => $orderId,
+                    'gross_amount' => (int) $finalTotal,
+                ],
+                'customer_details' => [
+                    'first_name' => $validated['customer_name'],
+                    'email'      => $validated['customer_email'],
+                    'phone'      => $validated['customer_phone'],
+                ],
+                'enabled_payments' => [
+                    'bri_va',
+                    'bca_va',
+                    'bni_va',
+                    'permata_va',
+                    'gopay',
+                    'other_qris',
+                    'shopeepay',
+                    'credit_card',
+                ],
+                'callbacks' => [
+                    'finish'   => route('user.user.midtrans.finish'),
+                    'unfinish' => route('user.user.midtrans.unfinish'),
+                    'error'    => route('user.user.midtrans.error'),
+                ],
+            ];
+
+            $snapToken = \Midtrans\Snap::getSnapToken($params);
+
+            Log::info('[CHECKOUT] Snap token berhasil dibuat', [
+                'order_code' => $orderId,
+                'token' => $snapToken
+            ]);
+
+            return response()->json(['token' => $snapToken]);
+        } catch (\Exception $e) {
+            Log::error('[CHECKOUT] Gagal membuat snap token', [
+                'error' => $e->getMessage(),
+                'order_code' => $orderId
+            ]);
+            return response()->json(['error' => 'Gagal membuat token pembayaran: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function payMidtrans() {}
 }

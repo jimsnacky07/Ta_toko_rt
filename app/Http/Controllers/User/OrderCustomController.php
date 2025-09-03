@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\DataUkuranBadan;
 use Midtrans\Snap;
 
 class OrderCustomController extends Controller
@@ -49,36 +50,41 @@ class OrderCustomController extends Controller
 
     // ======= Kain yang diizinkan per jenis pakaian =======
     private array $KAIN_BY_CLOTHES = [
-        'jas'          => ['american drill','twist drill','velvet'],
-        'blezer'       => ['american drill','twist drill','velvet'],
-        'dress'        => ['katun','wolfis','sutra','linen','brokat','batik'],
-        'baju_dinas'   => ['kopri','katun','nagata drill','america drill 1919'],
-        'baju_seragam' => ['katun','polyester','batik','rayon'],
-        'kebaya'       => ['sutra','brokat','satin'],
-        'kemeja'       => ['katun','linen','batik'],
-        'kemeja_cewek' => ['katun','linen','batik'],
-        'baju_melayu'  => ['katun','batik','linen','satin'],
-        'baju_couple'  => ['katun','batik','linen'],
-        'rok'          => ['linen','polyester','jeans','katun','satin'],
-        'celana_bahan' => ['linen','polyester','jeans','katun','satin'],
+        'jas'          => ['american drill', 'twist drill', 'velvet'],
+        'blezer'       => ['american drill', 'twist drill', 'velvet'],
+        'dress'        => ['katun', 'wolfis', 'sutra', 'linen', 'brokat', 'batik'],
+        'baju_dinas'   => ['kopri', 'katun', 'nagata drill', 'america drill 1919'],
+        'baju_seragam' => ['katun', 'polyester', 'batik', 'rayon'],
+        'kebaya'       => ['sutra', 'brokat', 'satin'],
+        'kemeja'       => ['katun', 'linen', 'batik'],
+        'kemeja_cewek' => ['katun', 'linen', 'batik'],
+        'baju_melayu'  => ['katun', 'batik', 'linen', 'satin'],
+        'baju_couple'  => ['katun', 'batik', 'linen'],
+        'rok'          => ['linen', 'polyester', 'jeans', 'katun', 'satin'],
+        'celana_bahan' => ['linen', 'polyester', 'jeans', 'katun', 'satin'],
         'celana_levis' => ['jeans'],
     ];
 
     // ======= Ukuran preset (opsional via Ajax) =======
     private array $SIZES_BY_CLOTHES = [
-        'jas' => ['S','M','L','XL','XXL'], 'blezer'=> ['S','M','L','XL'],
-        'dress'=> ['S','M','L','XL'], 'baju_dinas'=> ['S','M','L','XL'],
-        'baju_seragam'=> ['S','M','L','XL','XXL'], 'kebaya'=> ['S','M','L','XL'],
-        'kemeja'=> ['S','M','L','XL','XXL','Custom'], 'kemeja_cewek'=> ['S','M','L','XL','Custom'],
-        'baju_melayu'=> ['S','M','L','XL'], 'baju_couple'=> ['Anak','S','M','L','XL','XXL'],
-        'rok'=> ['26','27','28','29','30','31','32','Custom'],
-        'celana_bahan'=> ['27','28','29','30','31','32','33','34','Custom'],
-        'celana_levis'=> ['27','28','29','30','31','32','33','34','Custom'],
+        'jas' => ['S', 'M', 'L', 'XL', 'XXL'],
+        'blezer' => ['S', 'M', 'L', 'XL'],
+        'dress' => ['S', 'M', 'L', 'XL'],
+        'baju_dinas' => ['S', 'M', 'L', 'XL'],
+        'baju_seragam' => ['S', 'M', 'L', 'XL', 'XXL'],
+        'kebaya' => ['S', 'M', 'L', 'XL'],
+        'kemeja' => ['S', 'M', 'L', 'XL', 'XXL', 'Custom'],
+        'kemeja_cewek' => ['S', 'M', 'L', 'XL', 'Custom'],
+        'baju_melayu' => ['S', 'M', 'L', 'XL'],
+        'baju_couple' => ['Anak', 'S', 'M', 'L', 'XL', 'XXL'],
+        'rok' => ['26', '27', '28', '29', '30', '31', '32', 'Custom'],
+        'celana_bahan' => ['27', '28', '29', '30', '31', '32', '33', '34', 'Custom'],
+        'celana_levis' => ['27', '28', '29', '30', '31', '32', '33', '34', 'Custom'],
     ];
 
     // ======= Pengali & meter default (dipakai hanya saat fallback server-side) =======
-    private array $X3 = ['dress','baju_couple'];
-    private array $X2 = ['blezer','kebaya','baju_melayu','celana_levis','celana_bahan'];
+    private array $X3 = ['dress', 'baju_couple'];
+    private array $X2 = ['blezer', 'kebaya', 'baju_melayu', 'celana_levis', 'celana_bahan'];
     private float $MULT_DEFAULT = 1.5;
 
     private float $METER_DEFAULT = 2.0;
@@ -117,6 +123,28 @@ class OrderCustomController extends Controller
             'fabric_add'   => 'nullable|numeric',
             'unit_total'   => 'nullable|numeric',
             'grand_total'  => 'nullable|numeric',
+            // >>> field ukuran (semua opsional)
+            'panjang_baju'               => 'nullable|numeric',
+            'panjang_bahu'               => 'nullable|numeric',
+            'panjang_tangan'             => 'nullable|numeric',
+            'lingkar_pangkal_lengan'     => 'nullable|numeric',
+            'lingkar_siku'               => 'nullable|numeric',
+            'lingkar_ujung_tangan'       => 'nullable|numeric',
+            'lingkar_dada'               => 'nullable|numeric',
+            'lingkar_pingga'             => 'nullable|numeric',
+            'lingkar_pinggul'            => 'nullable|numeric',
+            'lingkar_leher'              => 'nullable|numeric',
+            'panjang_celana'             => 'nullable|numeric',
+            'lingkar_pinggang_celana'    => 'nullable|numeric',
+            'lingkar_pinggul_celana'     => 'nullable|numeric',
+            'lingkar_paha'               => 'nullable|numeric',
+            'lingkar_lutut'              => 'nullable|numeric',
+            'lingkar_kaki_bawah'         => 'nullable|numeric',
+            'panjang_pisak'              => 'nullable|numeric',
+            'panjang_rok'                => 'nullable|numeric',
+            'lingkar_pinggang_rok'       => 'nullable|numeric',
+            'lingkar_pinggul_rok'        => 'nullable|numeric',
+            'lebar_bahu'                 => 'nullable|numeric',
         ]);
 
         // defaults aman
@@ -136,26 +164,91 @@ class OrderCustomController extends Controller
     // ======= Halaman konfirmasi: pakai angka dari form; fallback hanya jika kosong =======
     public function konfirmasi(Request $request)
     {
+
         $qty        = max(1, (int) $request->query('jumlah', 1));
         $isCustomer = (int) $request->query('kain_aksesoris_customer', 0) === 1;
-
-        // 1) Ambil angka dari form (biar sama persis dengan halaman sebelumnya)
         $base      = (int) $request->query('base_price', 0);
         $fabricAdd = (int) $request->query('fabric_add', 0);
         $unitTotal = (int) $request->query('unit_total', 0);
         $grand     = (int) $request->query('grand_total', 0);
 
+        // Best practice: simpan order ke database saat user konfirmasi, status awal 'pending'
         if ($base > 0 && $unitTotal > 0) {
             if ($isCustomer) {
-                // safety: kalau centang "kain customer", pastikan add = 0
                 $fabricAdd = 0;
                 $unitTotal = $base;
                 $grand     = $unitTotal * $qty;
             }
 
-            // Snap Token (opsional)
-            $snapToken = $this->makeSnapTokenSafe($grand);
+            $user = Auth::user();
+            $orderCode = 'ORD-' . now()->format('YmdHis') . '-' . $user->id;
 
+            // Cek jika order sudah ada (hindari double order)
+            $order = \App\Models\Order::where('order_code', $orderCode)->first();
+            if (!$order) {
+                $order = \App\Models\Order::create([
+                    'user_id'      => $user->id,
+                    'kode_pesanan' => $orderCode,
+                    'order_code'   => $orderCode,
+                    'status'       => 'menunggu',
+                    'total_harga'  => $grand,
+                    'total_amount' => $grand,
+                ]);
+
+                \App\Models\OrderItem::create([
+                    'order_id'        => $order->id,
+                    'product_id'      => null,
+                    'garment_type'    => $request->query('jenis_pakaian', 'Custom'),
+                    'fabric_type'     => $request->query('jenis_kain', 'Custom'),
+                    'size'            => $request->query('jenis_ukuran', 'Custom'),
+                    'price'           => $unitTotal,
+                    'quantity'        => $qty,
+                    'total_price'     => $grand,
+                    'special_request' => $request->query('request', ''),
+                ]);
+            }
+
+            // Simpan ukuran badan (update-or-create) dengan mapping aman (ambil dari semua input)
+            try {
+                $input = $request->all();
+                $num = function ($key, $fallbackKeys = []) use ($input) {
+                    $keys = is_array($fallbackKeys) ? $fallbackKeys : [$fallbackKeys];
+                    array_unshift($keys, $key);
+                    foreach ($keys as $k) {
+                        if ($k !== null && $k !== '' && isset($input[$k]) && $input[$k] !== '') {
+                            return (int) $input[$k];
+                        }
+                    }
+                    return null;
+                };
+
+                $map = [
+                    'lingkaran_dada'     => $num('lingkar_dada'),
+                    'lingkaran_pinggang' => $num('lingkar_pingga', ['lingkar_pinggang_celana', 'lingkar_pinggang_rok']),
+                    'lingkaran_pinggul'  => $num('lingkar_pinggul', ['lingkar_pinggul_celana', 'lingkar_pinggul_rok']),
+                    'lingkaran_leher'    => $num('lingkar_leher'),
+                    'lingkaran_lengan'   => $num('lingkar_pangkal_lengan', ['lingkar_ujung_tangan']),
+                    'lingkaran_paha'     => $num('lingkar_paha'),
+                    'lingkaran_lutut'    => $num('lingkar_lutut'),
+                    'panjang_baju'       => $num('panjang_baju'),
+                    'panjang_lengan'     => $num('panjang_tangan'),
+                    'panjang_celana'     => $num('panjang_celana'),
+                    'panjang_rok'        => $num('panjang_rok'),
+                    'lebar_bahu'         => $num('lebar_bahu', ['panjang_bahu']),
+                ];
+                $clean = array_filter($map, fn($v) => $v !== null && $v !== '');
+                if (!empty($clean)) {
+                    DataUkuranBadan::updateOrCreate(
+                        ['user_id' => $user->id],
+                        $clean
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Gagal menyimpan data_ukuran_badan: ' . $e->getMessage());
+            }
+
+            // Gunakan order_code sebagai order_id di Midtrans agar webhook match
+            $snapToken = $this->makeSnapTokenSafe($grand, $orderCode);
             return view('user.pesanan.konfirmasi', [
                 'data'      => $request->all(),
                 'snapToken' => $snapToken,
@@ -164,7 +257,6 @@ class OrderCustomController extends Controller
                 'unitTotal' => $unitTotal,
                 'grand'     => $grand,
                 'qty'       => $qty,
-                // kompat lama:
                 'sum' => [
                     'base_price'  => $base,
                     'fabric_add'  => $fabricAdd,
@@ -191,7 +283,9 @@ class OrderCustomController extends Controller
         $unitTotal = $base + $fabricAdd;
         $grand     = $unitTotal * $qty;
 
-        $snapToken = $this->makeSnapTokenSafe($grand);
+        // order custom tanpa create order lebih dulu (fallback) tetap pakai kode unik sebagai order_id
+        $fallbackOrderCode = 'ORD-' . now()->format('YmdHis') . '-' . (Auth::id() ?? 'GUEST');
+        $snapToken = $this->makeSnapTokenSafe($grand, $fallbackOrderCode);
 
         return view('user.pesanan.konfirmasi', [
             'data'      => $request->all(),
@@ -251,7 +345,7 @@ class OrderCustomController extends Controller
     }
 
     /** Buat Snap Token tapi aman kalau config belum ada (return null) */
-    private function makeSnapTokenSafe(int $grossAmount): ?string
+    private function makeSnapTokenSafe(int $grossAmount, ?string $orderCode = null): ?string
     {
         try {
             \Midtrans\Config::$serverKey    = (string) config('midtrans.server_key');
@@ -263,7 +357,7 @@ class OrderCustomController extends Controller
                 return null;
             }
 
-            $orderId = 'ORD-' . now()->format('YmdHis') . '-' . mt_rand(1000, 9999);
+            $orderId = $orderCode ?: ('ORD-' . now()->format('YmdHis') . '-' . mt_rand(1000, 9999));
             $user    = Auth::user();
 
             $params = [
@@ -280,7 +374,7 @@ class OrderCustomController extends Controller
 
             return Snap::getSnapToken($params);
         } catch (\Throwable $e) {
-            // Log::warning('Gagal membuat Snap Token: '.$e->getMessage());
+            Log::warning('Gagal membuat Snap Token: ' . $e->getMessage());
             return null;
         }
     }
@@ -294,16 +388,16 @@ class OrderCustomController extends Controller
         if (!$allowed) {
             // kalau tidak ada mapping, kirim semua kain
             return response()->json(
-                collect($this->KAIN)->map(fn($r)=>['id'=>$r['value'],'name'=>$r['label']])->values()
+                collect($this->KAIN)->map(fn($r) => ['id' => $r['value'], 'name' => $r['label']])->values()
             );
         }
 
-        $map = collect($this->KAIN)->keyBy(fn($r)=>strtolower($r['value']));
+        $map = collect($this->KAIN)->keyBy(fn($r) => strtolower($r['value']));
         $options = collect($allowed)
             ->map(fn($val) => $map->get(strtolower($val)))
             ->filter()
             ->values()
-            ->map(fn($r)=>['id'=>$r['value'],'name'=>$r['label']])
+            ->map(fn($r) => ['id' => $r['value'], 'name' => $r['label']])
             ->all();
 
         return response()->json($options);
@@ -311,7 +405,7 @@ class OrderCustomController extends Controller
 
     public function ukuranByPakaian(string $pakaian)
     {
-        $list = $this->SIZES_BY_CLOTHES[strtolower($pakaian)] ?? ['S','M','L','XL','XXL'];
+        $list = $this->SIZES_BY_CLOTHES[strtolower($pakaian)] ?? ['S', 'M', 'L', 'XL', 'XXL'];
         return response()->json(
             collect($list)->map(fn($x) => ['id' => (string)$x, 'name' => (string)$x])->values()
         );

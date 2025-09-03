@@ -28,6 +28,7 @@ class Order extends Model
         'kode_pos_pengiriman',
         'catatan',
         'paid_at',
+        'tailor_id',
     ];
 
     protected $casts = [
@@ -36,12 +37,18 @@ class Order extends Model
         'paid_at' => 'datetime',
         'created_at'  => 'datetime',
         'updated_at'  => 'datetime',
+        'tailor_id' => 'integer',
     ];
 
     // Relasi
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function tailor()
+    {
+        return $this->belongsTo(User::class, 'tailor_id');
     }
 
     public function items()

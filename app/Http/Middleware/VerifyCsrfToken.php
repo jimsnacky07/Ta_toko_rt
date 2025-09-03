@@ -14,9 +14,11 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         // kalau route webhook kamu di web.php:
         'midtrans/notification',
+        'midtrans/*',
 
         // kalau route webhook kamu di api.php:
         // 'api/midtrans/notification',
+        'api/midtrans/*',
 
         // atau bisa juga pakai wildcard:
         // 'midtrans/*',

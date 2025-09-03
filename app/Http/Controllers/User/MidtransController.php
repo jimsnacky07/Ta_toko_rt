@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\User;
 
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -9,20 +12,23 @@ use App\Models\Order;
 use App\Models\Payment;
 use Midtrans\Snap;
 use Midtrans\Config as MidtransConfig;
-use Midtrans\Notification;
 
 class MidtransController extends Controller
 {
     public function __construct()
     {
-        // Pakai services.midtrans*, kalau kosong fallback ke midtrans.*
-        $serverKey     = config('services.midtrans.server_key', config('midtrans.server_key'));
-        $isProduction  = (bool) config('services.midtrans.is_production', config('midtrans.is_production', false));
+        // Set Midtrans configuration
+        $serverKey     = config('midtrans.server_key');
+        $clientKey     = config('midtrans.client_key');
+        $isProduction  = config('midtrans.is_production');
+        $isSanitized   = config('midtrans.is_sanitized');
+        $is3ds         = config('midtrans.is_3ds');
 
         MidtransConfig::$serverKey    = $serverKey;
+        MidtransConfig::$clientKey    = $clientKey;
         MidtransConfig::$isProduction = $isProduction;
-        MidtransConfig::$isSanitized  = true;
-        MidtransConfig::$is3ds        = true;
+        MidtransConfig::$isSanitized  = $isSanitized;
+        MidtransConfig::$is3ds        = $is3ds;
     }
 
     /* =========================================================
@@ -38,7 +44,7 @@ class MidtransController extends Controller
         }
 
         $items    = collect($sess['items'] ?? []);
-        $subtotal = $items->sum(fn ($it) => (int) $it['price'] * (int) $it['qty']);
+        $subtotal = $items->sum(fn($it) => (int) $it['price'] * (int) $it['qty']);
         $pickup   = $sess['pickup_method'] ?? 'store';
         $shipping = $pickup === 'jnt' ? 32000 : 0;
         $total    = $subtotal + $shipping;
@@ -77,7 +83,14 @@ class MidtransController extends Controller
                 'phone'      => $data['customer_phone'],
             ],
             'enabled_payments' => [
-                'bri_va','bca_va','bni_va','permata_va','gopay','other_qris','shopeepay','credit_card',
+                'bri_va',
+                'bca_va',
+                'bni_va',
+                'permata_va',
+                'gopay',
+                'other_qris',
+                'shopeepay',
+                'credit_card',
             ],
             'callbacks' => [
                 'finish'   => route('midtrans.finish'),
@@ -147,15 +160,15 @@ class MidtransController extends Controller
         ]);
 
         $params = [
-            'transaction_details'=> [
+            'transaction_details' => [
                 'order_id'     => $order->order_id,
                 'gross_amount' => (int) $order->amount
             ],
-            'customer_details'=> [
+            'customer_details' => [
                 'first_name'   => $r->user()->name,
                 'email'        => $r->user()->email
             ],
-            'enabled_payments'=> ['bca_va','bri_va','bni_va','permata_va','other_va','qris','gopay'],
+            'enabled_payments' => ['bca_va', 'bri_va', 'bni_va', 'permata_va', 'other_va', 'qris', 'gopay'],
             'callbacks' => [
                 'finish'   => route('midtrans.finish'),
                 'unfinish' => route('midtrans.unfinish'),
@@ -172,104 +185,131 @@ class MidtransController extends Controller
         ]);
     }
 
-    /* =========================================================
-     *  C. W E B H O O K   /   N O T I F I K A S I
-     * ========================================================= */
+    /**
+     * Map payment type dari Midtrans ke metode pembayaran yang user-friendly
+     */
+    private function mapPaymentType($paymentType)
+    {
+        $paymentTypeMap = [
+            'bank_transfer' => 'Bank Transfer',
+            'bca_va' => 'Bank Transfer BCA',
+            'bni_va' => 'Bank Transfer BNI',
+            'bri_va' => 'Bank Transfer BRI',
+            'permata_va' => 'Bank Transfer Permata',
+            'gopay' => 'GoPay',
+            'qris' => 'QRIS',
+            'credit_card' => 'Credit Card',
+            'cstore' => 'Convenience Store',
+            'other_va' => 'Bank Transfer Lainnya',
+            'other_qris' => 'QRIS Lainnya',
+        ];
 
-    // 4) Webhook dari Midtrans (bisa kamu daftarkan route POST ke method ini)
-    // public function notification(Request $request)
-    // {
-    //     // Bisa pakai Notification helper (lebih simple)
-    //     $notif = new Notification();
-
-    //     // Cari order berdasar order_id yang dikirim Midtrans
-    //     $order = Order::where('order_id', $notif->order_id)
-    //                   ->orWhere('order_code', $notif->order_id)
-    //                   ->orWhere('code', $notif->order_id) // kalau kamu pakai 'code'
-    //                   ->with('payment')
-    //                   ->first();
-
-    //     if (!$order) {
-    //         return response('order-not-found', 404);
-    //     }
-
-    //     $trx   = $notif->transaction_status;
-    //     $fraud = $notif->fraud_status ?? null;
-    //     $type  = $notif->payment_type ?? null;
-
-    //     // Ambil info VA jika tipe bank_transfer
-    //     $va = $bank = null;
-    //     if ($type === 'bank_transfer' && !empty($notif->va_numbers[0])) {
-    //         $va   = $notif->va_numbers[0]->va_number ?? null;
-    //         $bank = strtoupper($notif->va_numbers[0]->bank ?? '');
-    //     }
-
-    //     // Update/isi record Payment
-    //     $pay = $order->payment ?: new Payment(['order_id' => $order->id]);
-    //     $pay->transaction_id     = $notif->transaction_id ?? $pay->transaction_id;
-    //     $pay->payment_type       = $type ?? $pay->payment_type;
-    //     $pay->va_number          = $va ?? $pay->va_number;
-    //     $pay->bank               = $bank ?? $pay->bank;
-    //     $pay->transaction_status = $trx ?? $pay->transaction_status;
-    //     $pay->gross_amount       = (int) ($notif->gross_amount ?? $pay->gross_amount);
-    //     $pay->raw                = $pay->raw ?: []; // pastikan array
-    //     $pay->raw                = array_merge((array) $pay->raw, json_decode(json_encode($notif), true));
-    //     // sinkronkan ke status lama milikmu (optional)
-    //     $pay->status             = in_array($trx, ['capture','settlement']) ? 'completed'
-    //                              : ($trx === 'pending' ? 'pending' : 'failed');
-    //     $pay->save();
-
-    //     // Sinkron ke kolom status di orders (untuk tampilan user)
-    //     if (in_array($trx, ['capture','settlement'])) {
-    //         $order->status = 'PAID';
-    //     } elseif ($trx === 'pending') {
-    //         $order->status = 'PENDING';
-    //     } elseif (in_array($trx, ['expire','cancel','deny','failure'])) {
-    //         $order->status = 'CANCELED';
-    //     }
-    //     $order->save();
-
-    //     return response()->json(['ok' => true]);
-    // }
-
+        return $paymentTypeMap[$paymentType] ?? $paymentType;
+    }
 
     public function notification(Request $request)
     {
         try {
-            $notif = new \Midtrans\Notification();
-            
-            \Log::info('=== WEBHOOK RECEIVED ===', [
-                'order_id' => $notif->order_id,
-                'transaction_status' => $notif->transaction_status,
-                'payment_type' => $notif->payment_type ?? 'unknown',
-                'gross_amount' => $notif->gross_amount ?? 0,
-                'fraud_status' => $notif->fraud_status ?? 'unknown',
-                'customer_details' => $notif->customer_details ?? null,
-                'full_notification' => json_decode(json_encode($notif), true)
+            // Log raw request data
+            Log::info('=== [MIDTRANS] WEBHOOK RECEIVED - RAW DATA ===', [
+                'request_method' => $request->method(),
+                'request_url' => $request->fullUrl(),
+                'request_headers' => $request->headers->all(),
+                'request_body' => $request->all(),
+                'content_type' => $request->header('Content-Type'),
+                'user_agent' => $request->header('User-Agent'),
+                'ip_address' => $request->ip(),
             ]);
-            
+
+            $notif = new \Midtrans\Notification();
+
+            // Log parsed notification data
+            Log::info('=== [MIDTRANS] WEBHOOK RECEIVED - PARSED DATA ===', [
+                'order_id' => $notif->order_id ?? 'null',
+                'transaction_id' => $notif->transaction_id ?? 'null',
+                'transaction_status' => $notif->transaction_status ?? 'null',
+                'transaction_time' => $notif->transaction_time ?? 'null',
+                'payment_type' => $notif->payment_type ?? 'null',
+                'gross_amount' => $notif->gross_amount ?? 'null',
+                'currency' => $notif->currency ?? 'null',
+                'fraud_status' => $notif->fraud_status ?? 'null',
+                'status_code' => $notif->status_code ?? 'null',
+                'status_message' => $notif->status_message ?? 'null',
+                'merchant_id' => $notif->merchant_id ?? 'null',
+                'finish_redirect_url' => $notif->finish_redirect_url ?? 'null',
+                'error_snap_url' => $notif->error_snap_url ?? 'null',
+                'pending_redirect_url' => $notif->pending_redirect_url ?? 'null',
+                'unfinish_redirect_url' => $notif->unfinish_redirect_url ?? 'null',
+            ]);
+
+            // Log customer details
+            if (isset($notif->customer_details)) {
+                Log::info('=== [MIDTRANS] CUSTOMER DETAILS ===', [
+                    'customer_details' => json_decode(json_encode($notif->customer_details), true),
+                ]);
+            }
+
+            // Log item details
+            if (isset($notif->item_details)) {
+                Log::info('=== [MIDTRANS] ITEM DETAILS ===', [
+                    'item_details' => json_decode(json_encode($notif->item_details), true),
+                ]);
+            }
+
+            // Log billing address
+            if (isset($notif->billing_address)) {
+                Log::info('=== [MIDTRANS] BILLING ADDRESS ===', [
+                    'billing_address' => json_decode(json_encode($notif->billing_address), true),
+                ]);
+            }
+
+            // Log shipping address
+            if (isset($notif->shipping_address)) {
+                Log::info('=== [MIDTRANS] SHIPPING ADDRESS ===', [
+                    'shipping_address' => json_decode(json_encode($notif->shipping_address), true),
+                ]);
+            }
+
+            // Log full notification object
+            Log::info('=== [MIDTRANS] FULL NOTIFICATION OBJECT ===', [
+                'full_notification' => json_decode(json_encode($notif), true),
+            ]);
+
+            // Log session data
+            Log::info('=== [MIDTRANS] SESSION DATA ===', [
+                'session_pending_order' => session('pending_order'),
+                'session_id' => session()->getId(),
+            ]);
+
+            // Cari order berdasarkan order_code atau kode_pesanan
             $order = \App\Models\Order::where('order_code', $notif->order_id)
                 ->orWhere('kode_pesanan', $notif->order_id)
                 ->first();
+
             $trx = $notif->transaction_status;
 
             // Jika order belum ada dan pembayaran sukses, buat order baru dari session
-            if (!$order && in_array($trx, ['capture','settlement'])) {
+            if (!$order && in_array($trx, ['capture', 'settlement'])) {
+                Log::warning('[MIDTRANS] Order tidak ditemukan di database, mencoba buat dari session', [
+                    'order_id' => $notif->order_id,
+                    'gross_amount' => $notif->gross_amount
+                ]);
+
                 // Coba ambil dari session global atau request session
                 $pendingOrder = session('pending_order');
-                
-                \Log::info('Pending Order from Session', ['pending_order' => $pendingOrder]);
-                
+
+                Log::info('Pending Order from Session', ['pending_order' => $pendingOrder]);
+
                 // Jika tidak ada pending order di session, coba buat order langsung dari notifikasi
                 if (!$pendingOrder) {
-                    \Log::info('No pending order in session, creating order from notification', [
+                    Log::info('No pending order in session, creating order from notification', [
                         'order_id' => $notif->order_id,
                         'gross_amount' => $notif->gross_amount
                     ]);
-                    
+
                     // Force create tables if they don't exist
-                    if (!\Schema::hasTable('orders')) {
-                        \Schema::create('orders', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    if (!Schema::hasTable('orders')) {
+                        Schema::create('orders', function (\Illuminate\Database\Schema\Blueprint $table) {
                             $table->id();
                             $table->unsignedBigInteger('user_id');
                             $table->string('order_code')->unique();
@@ -280,9 +320,9 @@ class MidtransController extends Controller
                             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
                         });
                     }
-                    
-                    if (!\Schema::hasTable('order_items')) {
-                        \Schema::create('order_items', function (\Illuminate\Database\Schema\Blueprint $table) {
+
+                    if (!Schema::hasTable('order_items')) {
+                        Schema::create('order_items', function (\Illuminate\Database\Schema\Blueprint $table) {
                             $table->id();
                             $table->unsignedBigInteger('order_id');
                             $table->unsignedBigInteger('product_id')->nullable();
@@ -297,52 +337,60 @@ class MidtransController extends Controller
                             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
                         });
                     }
-                    
+
                     // Find user by email from notification or session
                     $userId = null;
-                    
+
                     // 1. Try to get user from session first (more reliable)
                     $pendingOrder = session('pending_order');
                     if ($pendingOrder && isset($pendingOrder['user_email'])) {
                         $user = \App\Models\User::where('email', $pendingOrder['user_email'])->first();
                         if ($user) {
                             $userId = $user->id;
-                            \Log::info('Found user from session', ['user_id' => $userId, 'email' => $pendingOrder['user_email']]);
+                            Log::info('Found user from session', ['user_id' => $userId, 'email' => $pendingOrder['user_email']]);
                         }
                     }
-                    
+
                     // 2. If not found in session, try from notification
                     if (!$userId && isset($notif->customer_details) && isset($notif->customer_details->email)) {
                         $user = \App\Models\User::where('email', $notif->customer_details->email)->first();
                         if ($user) {
                             $userId = $user->id;
-                            \Log::info('Found user from notification', ['user_id' => $userId, 'email' => $notif->customer_details->email]);
+                            Log::info('Found user from notification', ['user_id' => $userId, 'email' => $notif->customer_details->email]);
                         }
                     }
-                    
+
                     // 3. If still not found, use the first user as fallback (for testing)
                     if (!$userId) {
                         $user = \App\Models\User::first();
                         $userId = $user ? $user->id : 1;
-                        \Log::warning('Using fallback user', ['user_id' => $userId]);
+                        Log::warning('Using fallback user', ['user_id' => $userId]);
                     }
-                    
+
                     // Buat order minimal dari notifikasi
                     $order = \App\Models\Order::create([
                         'user_id' => $userId,
                         'kode_pesanan' => $notif->order_id,
                         'order_code' => $notif->order_id,
-                        'status' => 'paid',
+                        'status' => 'diproses',
                         'total_harga' => $notif->gross_amount ?? 0,
                         'total_amount' => $notif->gross_amount ?? 0,
+                        'metode_pembayaran' => $this->mapPaymentType($notif->payment_type ?? 'unknown'),
                         'paid_at' => now(),
                     ]);
-                    
-                    // Tentukan jenis order berdasarkan order_id
-                    $isCustomOrder = str_contains($notif->order_id, 'ORD-');
-                    
-                    if ($isCustomOrder) {
-                        // Order Custom
+
+                    // Pembeda order produk vs custom:
+                    // 1. Jika ada order_type di session pending_order, gunakan itu
+                    // 2. Jika tidak, cek pending_order['items']:
+                    //    - Jika ada product_id, berarti produk
+                    //    - Jika product_id null, berarti custom
+                    $pendingOrder = session('pending_order');
+                    $orderType = null;
+                    if ($pendingOrder && isset($pendingOrder['items'][0]['product_id'])) {
+                        $orderType = $pendingOrder['items'][0]['product_id'] ? 'PRODUCT' : 'CUSTOM';
+                    }
+                    // Fallback: jika tidak ada info, asumsikan produk
+                    if ($orderType === 'CUSTOM') {
                         \App\Models\OrderItem::create([
                             'order_id' => $order->id,
                             'product_id' => null,
@@ -355,26 +403,24 @@ class MidtransController extends Controller
                             'special_request' => 'Custom Order - Payment ID: ' . $notif->order_id
                         ]);
                     } else {
-                        // Product Order
                         \App\Models\OrderItem::create([
                             'order_id' => $order->id,
-                            'product_id' => 1,
-                            'garment_type' => 'Product Order',
-                            'fabric_type' => 'Standard',
-                            'size' => 'M',
-                            'price' => $notif->gross_amount ?? 0,
-                            'quantity' => 1,
-                            'total_price' => $notif->gross_amount ?? 0,
-                            'special_request' => 'Product Order - Payment ID: ' . $notif->order_id
+                            'product_id' => $pendingOrder['items'][0]['product_id'] ?? 1,
+                            'garment_type' => $pendingOrder['items'][0]['garment_type'] ?? 'Product Order',
+                            'fabric_type' => $pendingOrder['items'][0]['fabric_type'] ?? 'Standard',
+                            'size' => $pendingOrder['items'][0]['size'] ?? 'M',
+                            'price' => $pendingOrder['items'][0]['price'] ?? ($notif->gross_amount ?? 0),
+                            'quantity' => $pendingOrder['items'][0]['quantity'] ?? 1,
+                            'total_price' => $pendingOrder['items'][0]['total_price'] ?? ($notif->gross_amount ?? 0),
+                            'special_request' => $pendingOrder['items'][0]['special_request'] ?? ('Product Order - Payment ID: ' . $notif->order_id),
                         ]);
                     }
-                    
-                    \Log::info('Order Created from Notification', [
+
+                    Log::info('Order Created from Notification', [
                         'order_id' => $order->id,
                         'order_code' => $order->order_code,
                         'amount' => $order->total_amount
                     ]);
-                    
                 } elseif ($pendingOrder) {
                     // Cari user berdasarkan email untuk memastikan user_id yang benar
                     $userId = $pendingOrder['user_id'];
@@ -384,7 +430,7 @@ class MidtransController extends Controller
                             $userId = $user->id;
                         }
                     }
-                    
+
                     // Buat order baru
                     $order = \App\Models\Order::create([
                         'user_id' => $userId,
@@ -393,10 +439,11 @@ class MidtransController extends Controller
                         'status' => 'paid',
                         'total_harga' => $pendingOrder['total_amount'],
                         'total_amount' => $pendingOrder['total_amount'],
+                        'metode_pembayaran' => $this->mapPaymentType($notif->payment_type ?? 'unknown'),
                         'paid_at' => now(),
                     ]);
 
-                    \Log::info('Order Created Successfully', [
+                    Log::info('Order Created Successfully', [
                         'order_id' => $order->id,
                         'order_code' => $order->order_code,
                         'user_id' => $order->user_id,
@@ -416,29 +463,29 @@ class MidtransController extends Controller
                             'total_price' => $item['total_price'],
                             'special_request' => $item['special_request'],
                         ]);
-                        
-                        \Log::info('Order Item Created', ['item_id' => $orderItem->id]);
+
+                        Log::info('Order Item Created', ['item_id' => $orderItem->id]);
                     }
 
                     // Hapus item dari keranjang
                     if (!empty($pendingOrder['selected_cart_ids'])) {
                         $keranjang = session('keranjang', []);
                         $selectedIds = array_map('strval', $pendingOrder['selected_cart_ids']);
-                        
+
                         $keranjang = array_values(array_filter(
                             $keranjang,
                             fn($item) => !in_array((string)($item['id'] ?? ''), $selectedIds)
                         ));
-                        
+
                         session(['keranjang' => $keranjang]);
-                        \Log::info('Cart Items Removed', ['removed_ids' => $selectedIds]);
+                        Log::info('Cart Items Removed', ['removed_ids' => $selectedIds]);
                     }
 
                     // Hapus pending order dari session
                     session()->forget('pending_order');
-                    \Log::info('Pending Order Cleared from Session');
+                    Log::info('Pending Order Cleared from Session');
                 } else {
-                    \Log::warning('Pending Order Not Found or Mismatch', [
+                    Log::warning('Pending Order Not Found or Mismatch', [
                         'expected_order_code' => $notif->order_id,
                         'session_order_code' => $pendingOrder['order_code'] ?? null
                     ]);
@@ -447,38 +494,153 @@ class MidtransController extends Controller
 
             // Update status order yang sudah ada
             if ($order) {
-                $oldStatus = $order->status;
-                
-                if (in_array($trx, ['capture','settlement'])) {
-                    $order->status = 'paid';
-                    $order->paid_at = now();
-                } elseif ($trx === 'pending') {
-                    $order->status = 'pending';
-                } elseif (in_array($trx, ['expire','cancel','deny','failure'])) {
-                    $order->status = 'canceled';
-                }
-                
-                $order->save();
-                
-                \Log::info('Order Status Updated', [
+                Log::info('=== [MIDTRANS] UPDATING EXISTING ORDER ===', [
                     'order_id' => $order->id,
+                    'order_code' => $order->order_code,
+                    'current_status' => $order->status,
+                    'current_payment_method' => $order->metode_pembayaran,
+                    'transaction_status' => $trx,
+                    'payment_type' => $notif->payment_type ?? 'null',
+                ]);
+
+                $oldStatus = $order->status;
+                $oldPaymentMethod = $order->metode_pembayaran;
+
+                // Mapping status Midtrans ke status order di DB (force override)
+                $statusMap = [
+                    'pending'     => 'menunggu',
+                    'capture'     => 'diproses',
+                    'settlement'  => 'diproses',
+                    'deny'        => 'dibatalkan',
+                    'cancel'      => 'dibatalkan',
+                    'expire'      => 'dibatalkan',
+                    'failure'     => 'dibatalkan',
+                ];
+
+                $newStatus = $statusMap[$trx] ?? $order->status;
+                $order->status = $newStatus;
+
+                if (in_array($trx, ['capture', 'settlement'])) {
+                    $order->paid_at = now();
+                    Log::info('Payment completed, setting paid_at', [
+                        'paid_at' => $order->paid_at,
+                        'transaction_status' => $trx
+                    ]);
+                }
+
+                // Simpan metode pembayaran dari notifikasi (force override)
+                // Ambil payment_type dari objek notif atau langsung dari body request sebagai fallback
+                $paymentTypeFromNotif = isset($notif->payment_type) ? $notif->payment_type : null;
+                $paymentTypeFromBody  = $request->input('payment_type');
+                $effectivePaymentType = $paymentTypeFromNotif ?: $paymentTypeFromBody;
+
+                if ($effectivePaymentType) {
+                    // Default mapping
+                    $paymentTypeMap = [
+                        'bank_transfer' => 'Bank Transfer',
+                        'bca_va'        => 'Bank Transfer BCA',
+                        'bni_va'        => 'Bank Transfer BNI',
+                        'bri_va'        => 'Bank Transfer BRI',
+                        'permata_va'    => 'Bank Transfer Permata',
+                        'gopay'         => 'GoPay',
+                        'qris'          => 'QRIS',
+                        'other_qris'    => 'QRIS',
+                        'credit_card'   => 'Credit Card',
+                        'cstore'        => 'Convenience Store',
+                        'other_va'      => 'Bank Transfer Lainnya',
+                    ];
+
+                    $paymentType = $effectivePaymentType;
+                    $metodePembayaran = $paymentTypeMap[$paymentType] ?? $paymentType;
+
+                    // Khusus bank_transfer: tentukan bank dari va_numbers jika tersedia
+                    if ($paymentType === 'bank_transfer') {
+                        $vaNumbers = null;
+                        if (isset($notif->va_numbers)) {
+                            $vaNumbers = json_decode(json_encode($notif->va_numbers), true);
+                        }
+                        if (!$vaNumbers) {
+                            $vaNumbers = $request->input('va_numbers');
+                        }
+
+                        $bank = '';
+                        if (is_array($vaNumbers) && count($vaNumbers) > 0) {
+                            $first = $vaNumbers[0];
+                            $bank = strtolower(($first['bank'] ?? ($first->bank ?? '')));
+                        }
+
+                        if ($bank === 'bca') {
+                            $metodePembayaran = 'Bank Transfer BCA';
+                        } elseif ($bank === 'bni') {
+                            $metodePembayaran = 'Bank Transfer BNI';
+                        } elseif ($bank === 'bri') {
+                            $metodePembayaran = 'Bank Transfer BRI';
+                        } elseif ($bank === 'permata') {
+                            $metodePembayaran = 'Bank Transfer Permata';
+                        } else {
+                            $metodePembayaran = 'Bank Transfer';
+                        }
+                    }
+
+                    // Khusus QRIS lain: normalisasi ke QRIS
+                    if (in_array($paymentType, ['qris', 'other_qris'], true)) {
+                        $metodePembayaran = 'QRIS';
+                    }
+
+                    $order->metode_pembayaran = $metodePembayaran;
+
+                    Log::info('=== [MIDTRANS] PAYMENT METHOD MAPPING ===', [
+                        'original_payment_type_notif' => $paymentTypeFromNotif,
+                        'original_payment_type_body'  => $paymentTypeFromBody,
+                        'effective_payment_type'      => $paymentType,
+                        'va_numbers_from_notif'       => isset($notif->va_numbers) ? json_decode(json_encode($notif->va_numbers), true) : null,
+                        'va_numbers_from_body'        => $request->input('va_numbers'),
+                        'mapped_payment_method' => $metodePembayaran,
+                        'old_payment_method' => $oldPaymentMethod,
+                        'new_payment_method' => $metodePembayaran,
+                    ]);
+                }
+
+                $order->save();
+
+                Log::info('=== [MIDTRANS] ORDER UPDATE COMPLETED ===', [
+                    'order_id' => $order->id,
+                    'order_code' => $order->order_code,
                     'old_status' => $oldStatus,
-                    'new_status' => $order->status
+                    'new_status' => $order->status,
+                    'old_payment_method' => $oldPaymentMethod,
+                    'new_payment_method' => $order->metode_pembayaran ?? 'null',
+                    'paid_at' => $order->paid_at,
+                    'updated_at' => $order->updated_at
+                ]);
+            } else {
+                Log::warning('=== [MIDTRANS] ORDER NOT FOUND ===', [
+                    'order_id_from_notification' => $notif->order_id,
+                    'transaction_status' => $trx,
+                    'payment_type' => $notif->payment_type ?? 'null',
+                    'gross_amount' => $notif->gross_amount ?? 'null'
                 ]);
             }
 
+            Log::info('=== [MIDTRANS] WEBHOOK PROCESSING COMPLETED ===', [
+                'order_found' => $order ? true : false,
+                'order_id' => $order ? $order->id : null,
+                'order_code' => $order ? $order->order_code : null,
+                'final_status' => $order ? $order->status : null,
+                'final_payment_method' => $order ? $order->metode_pembayaran : null,
+                'response' => ['ok' => true]
+            ]);
+
             return response()->json(['ok' => true]);
-            
         } catch (\Exception $e) {
-            \Log::error('Midtrans Notification Error', [
+            Log::error('Midtrans Notification Error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
-
 
     /* =========================================================
      *  D. R E D I R E C T  P A G E S
@@ -488,7 +650,7 @@ class MidtransController extends Controller
     {
         // Tunggu sebentar untuk memastikan webhook sudah diproses
         sleep(3);
-        
+
         return redirect()->route('user.orders.index')->with('success', 'Pembayaran berhasil! Pesanan Anda sedang diproses.');
     }
 
@@ -503,6 +665,4 @@ class MidtransController extends Controller
         return redirect()->route('user.orders.index')
             ->with('error', 'Terjadi error pembayaran.');
     }
-
-    
 }
