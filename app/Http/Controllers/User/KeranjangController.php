@@ -553,7 +553,7 @@ class KeranjangController extends Controller
                 // Data untuk database
                 $orderItems[] = [
                     'type' => 'prod',
-                    'product_id' => $productId,
+                    'product_id' => ($productId === '' || $productId === null) ? null : $productId,
                     'garment_type' => 'Ready Made',
                     'fabric_type' => 'Standard',
                     'size' => $row['size'] ?? 'M',
@@ -621,9 +621,13 @@ class KeranjangController extends Controller
         // Simpan ke session dengan lifetime yang lebih lama
         session(['pending_order' => $pendingOrder]);
 
+        // Juga simpan ke cache untuk backup jika session hilang
+        cache()->put('pending_order_' . $orderCode, $pendingOrder, now()->addHours(2));
+
         // Log the session data for debugging
-        Log::info('Pending order saved to session', [
+        Log::info('Pending order saved to session and cache', [
             'session_id' => session()->getId(),
+            'order_code' => $orderCode,
             'user_id' => $user->id,
             'user_email' => $user->email,
             'order_total' => $gross,

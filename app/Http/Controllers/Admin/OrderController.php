@@ -26,27 +26,53 @@ class OrderController extends Controller
     {
         $q      = $request->input('q');
         $status = $request->input('status');
+        $type   = $request->input('type', 'all'); // default 'all'
 
-        $orders = Order::with(['user','payment','tailor'])
+        // Hitung jumlah pesanan untuk tab
+        $allCount     = Order::count();
+        $productCount = Order::where('order_code', 'like', 'OP-%')->count();
+        $customCount  = Order::where('order_code', 'like', 'OC-%')->count();
+
+        $orders = Order::with(['user', 'tailor', 'orderItems'])
             ->when($q, function ($query) use ($q) {
                 $query->whereHas('user', function ($u) use ($q) {
-                        $u->where('name', 'like', "%{$q}%")
-                          ->orWhere('email', 'like', "%{$q}%");
-                    })
+                    $u->where('name', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%");
+                })
                     ->orWhere('id', $q)
                     ->orWhere('order_id', 'like', "%{$q}%")
                     ->orWhere('order_code', 'like', "%{$q}%")
                     ->orWhereDate('created_at', $q);
             })
             ->when($status, fn($query) => $query->where('status', $status))
+            ->when(
+                $type === 'product',
+                fn($query) =>
+                $query->where('order_code', 'like', 'OP-%')
+            )
+            ->when(
+                $type === 'custom',
+                fn($query) =>
+                $query->where('order_code', 'like', 'OC-%')
+            )
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
         $tailors = \App\Models\User::where('level', 'tailor')->orderBy('nama')->get();
 
-        return view('admin.daftar-pesanan', compact('orders','tailors','q','status'));
+        return view('admin.daftar-pesanan', compact(
+            'orders',
+            'tailors',
+            'q',
+            'status',
+            'type',
+            'allCount',
+            'productCount',
+            'customCount'
+        ));
     }
+
 
     /**
      * Detail order baru (opsional kalau kamu punya halaman show untuk order baru)
@@ -88,7 +114,7 @@ class OrderController extends Controller
     public function getOrderDetails(Order $order)
     {
         $order->load(['user', 'orderItems']);
-        
+
         return response()->json([
             'id' => $order->id,
             'order_code' => $order->order_code ?? $order->kode_pesanan,
@@ -121,7 +147,7 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $request->validate([
-            'status' => 'required|in:pending,paid,menunggu,diproses,selesai,cancelled'
+            'status' => 'required|in:menunggu,diproses,selesai,dibatalkan,siap-diambil'
         ]);
 
         $order->update(['status' => $request->status]);
@@ -144,11 +170,11 @@ class OrderController extends Controller
 
         $pesanans = Pesanan::with('user')
             ->when($q, function ($query) use ($q) {
-                $query->whereHas('user', fn($sub) => $sub->where('name','like',"%{$q}%"))
-                      ->orWhere('id', $q)
-                      ->orWhereDate('order_date', $q);
+                $query->whereHas('user', fn($sub) => $sub->where('name', 'like', "%{$q}%"))
+                    ->orWhere('id', $q)
+                    ->orWhereDate('order_date', $q);
             })
-            ->when($status, fn($query) => $query->where('status',$status))
+            ->when($status, fn($query) => $query->where('status', $status))
             ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
@@ -184,11 +210,11 @@ class OrderController extends Controller
     public function updatePesananStatus(Request $request, Pesanan $pesanan)
     {
         $validated = $request->validate([
-            'status' => ['required','in:'.implode(',', \App\Models\Pesanan::STATUSES)],
+            'status' => ['required', 'in:' . implode(',', \App\Models\Pesanan::STATUSES)],
         ]);
 
         $pesanan->update(['status' => $validated['status']]);
 
-        return back()->with('success','Status pesanan diperbarui.');
+        return back()->with('success', 'Status pesanan diperbarui.');
     }
 }

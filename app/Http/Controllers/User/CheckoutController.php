@@ -66,7 +66,7 @@ class CheckoutController extends Controller
 
                 $data  = [
                     'pesanan_id'    => 0,
-                    'order_id'      => 'ORD-' . now()->format('YmdHis'),
+                    'order_id'      => 'OP-' . now()->format('YmdHis'),
                     'product_name'  => $first['name'],
                     'harga'         => $first['harga'],
                     'qty'           => $first['qty'],
@@ -93,7 +93,7 @@ class CheckoutController extends Controller
         // ---------- Fallback: checkout_data ----------
         $data = (array) $request->session()->get('checkout_data', [
             'pesanan_id'    => 0,
-            'order_id'      => 'ORD-' . now()->format('YmdHis'),
+            'order_id'      => 'OP-' . now()->format('YmdHis'),
             'product_name'  => 'Produk',
             'harga'         => 0,
             'qty'           => 1,
@@ -148,7 +148,7 @@ class CheckoutController extends Controller
             'pickup_method' => 'nullable|in:store,jnt',
         ]);
 
-        $validated['order_id']      = $validated['order_id']      ?? ('ORD-' . now()->format('YmdHis'));
+        $validated['order_id']      = $validated['order_id']      ?? ('OP-' . now()->format('YmdHis'));
         $validated['pickup_method'] = $validated['pickup_method'] ?? 'store';
 
         if (!empty($validated['image'])) {
@@ -179,7 +179,7 @@ class CheckoutController extends Controller
         ]);
 
         // Untuk order custom, tetap gunakan format ORD-2025xxx
-        $isCustom = isset($data['order_id']) && str_starts_with(strtolower($data['order_id']), 'ord-');
+        $isCustom = isset($data['order_id']) && str_starts_with(strtolower($data['order_id']), 'op-');
         if (!$isCustom) {
             // Jika bukan custom, kosongkan order_id, nanti diisi oleh proses order produk
             unset($data['order_id']);
@@ -311,7 +311,7 @@ class CheckoutController extends Controller
         $harga    = (int) $validated['harga'];
         $qty      = (int) $validated['qty'];
         $name     = (string) $validated['product_name'];
-        $orderId  = 'ORD-' . now()->format('YmdHisv') . '-' . Str::upper(Str::random(6));
+        $orderId  = 'OP-' . now()->format('YmdHisv') . '-' . Str::upper(Str::random(6));
         $userId   = Auth::id();
         $userEmail = Auth::user() ? Auth::user()->email : null;
         $cart = session('cart', []);

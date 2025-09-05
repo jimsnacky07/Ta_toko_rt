@@ -288,6 +288,15 @@ class MidtransController extends Controller
 
             $trx = $notif->transaction_status;
 
+            // Log order search result
+            Log::info('=== [MIDTRANS] ORDER SEARCH RESULT ===', [
+                'search_order_id' => $notif->order_id,
+                'order_found' => $order ? true : false,
+                'order_id' => $order ? $order->id : null,
+                'order_code' => $order ? $order->order_code : null,
+                'transaction_status' => $trx
+            ]);
+
             // Jika order belum ada dan pembayaran sukses, buat order baru dari session
             if (!$order && in_array($trx, ['capture', 'settlement'])) {
                 Log::warning('[MIDTRANS] Order tidak ditemukan di database, mencoba buat dari session', [
@@ -298,10 +307,27 @@ class MidtransController extends Controller
                 // Coba ambil dari session global atau request session
                 $pendingOrder = session('pending_order');
 
-                Log::info('Pending Order from Session', ['pending_order' => $pendingOrder]);
-
-                // Jika tidak ada pending order di session, coba buat order langsung dari notifikasi
+                // Jika tidak ada di session, coba ambil dari cache
                 if (!$pendingOrder) {
+                    $pendingOrder = cache()->get('pending_order_' . $notif->order_id);
+                    Log::info('Pending Order from Cache', ['pending_order' => $pendingOrder]);
+                } else {
+                    Log::info('Pending Order from Session', ['pending_order' => $pendingOrder]);
+                }
+
+                // Cek apakah order sudah ada dengan format yang berbeda
+                $existingOrder = \App\Models\Order::where('order_code', 'like', '%' . $notif->order_id . '%')
+                    ->orWhere('kode_pesanan', 'like', '%' . $notif->order_id . '%')
+                    ->first();
+
+                if ($existingOrder) {
+                    Log::info('Found existing order with similar code', [
+                        'existing_order_id' => $existingOrder->id,
+                        'existing_order_code' => $existingOrder->order_code,
+                        'search_order_id' => $notif->order_id
+                    ]);
+                    $order = $existingOrder;
+                } elseif (!$pendingOrder) {
                     Log::info('No pending order in session, creating order from notification', [
                         'order_id' => $notif->order_id,
                         'gross_amount' => $notif->gross_amount
@@ -372,7 +398,7 @@ class MidtransController extends Controller
                         'user_id' => $userId,
                         'kode_pesanan' => $notif->order_id,
                         'order_code' => $notif->order_id,
-                        'status' => 'diproses',
+                        'status' => 'diproses', // Status sesuai enum values
                         'total_harga' => $notif->gross_amount ?? 0,
                         'total_amount' => $notif->gross_amount ?? 0,
                         'metode_pembayaran' => $this->mapPaymentType($notif->payment_type ?? 'unknown'),
@@ -400,12 +426,13 @@ class MidtransController extends Controller
                             'price' => $notif->gross_amount ?? 0,
                             'quantity' => 1,
                             'total_price' => $notif->gross_amount ?? 0,
-                            'special_request' => 'Custom Order - Payment ID: ' . $notif->order_id
+                            'special_request' => 'Custom Order - Payment ID: ' . $notif->order_id,
+                            'status' => 'menunggu' // Status sesuai enum values
                         ]);
                     } else {
                         \App\Models\OrderItem::create([
                             'order_id' => $order->id,
-                            'product_id' => $pendingOrder['items'][0]['product_id'] ?? 1,
+                            'product_id' => ((($pendingOrder['items'][0]['product_id'] ?? null) === '' || ($pendingOrder['items'][0]['product_id'] ?? null) === 0) ? null : ($pendingOrder['items'][0]['product_id'] ?? null)),
                             'garment_type' => $pendingOrder['items'][0]['garment_type'] ?? 'Product Order',
                             'fabric_type' => $pendingOrder['items'][0]['fabric_type'] ?? 'Standard',
                             'size' => $pendingOrder['items'][0]['size'] ?? 'M',
@@ -413,6 +440,7 @@ class MidtransController extends Controller
                             'quantity' => $pendingOrder['items'][0]['quantity'] ?? 1,
                             'total_price' => $pendingOrder['items'][0]['total_price'] ?? ($notif->gross_amount ?? 0),
                             'special_request' => $pendingOrder['items'][0]['special_request'] ?? ('Product Order - Payment ID: ' . $notif->order_id),
+                            'status' => 'menunggu' // Status sesuai enum values
                         ]);
                     }
 
@@ -431,40 +459,133 @@ class MidtransController extends Controller
                         }
                     }
 
-                    // Buat order baru
-                    $order = \App\Models\Order::create([
-                        'user_id' => $userId,
-                        'kode_pesanan' => $notif->order_id,
-                        'order_code' => $notif->order_id,
-                        'status' => 'paid',
-                        'total_harga' => $pendingOrder['total_amount'],
-                        'total_amount' => $pendingOrder['total_amount'],
-                        'metode_pembayaran' => $this->mapPaymentType($notif->payment_type ?? 'unknown'),
-                        'paid_at' => now(),
-                    ]);
+                    // Batalkan order duplikat (pre-order) yang sempat tersimpan sebelum bayar dari keranjang
+                    try {
+                        $allItems = collect($pendingOrder['items'] ?? []);
+                        $candidateTotals = $allItems->map(function ($it) {
+                            $qty = (int)($it['quantity'] ?? 1);
+                            $price = (int)($it['price'] ?? 0);
+                            return (int)($it['total_price'] ?? ($price * $qty));
+                        })
+                            ->filter(fn($v) => $v > 0)
+                            ->unique()
+                            ->values()
+                            ->all();
 
-                    Log::info('Order Created Successfully', [
-                        'order_id' => $order->id,
-                        'order_code' => $order->order_code,
-                        'user_id' => $order->user_id,
-                        'total_amount' => $order->total_amount
-                    ]);
+                        if (!empty($candidateTotals)) {
+                            $duplicates = \App\Models\Order::where('user_id', $userId)
+                                ->where('status', 'menunggu')
+                                ->whereIn('total_amount', $candidateTotals)
+                                ->where('created_at', '>=', now()->subMinutes(60))
+                                ->get();
 
-                    // Buat order items
-                    foreach ($pendingOrder['items'] as $item) {
-                        $orderItem = \App\Models\OrderItem::create([
-                            'order_id' => $order->id,
-                            'product_id' => $item['product_id'] ?? 1,
-                            'garment_type' => $item['garment_type'],
-                            'fabric_type' => $item['fabric_type'],
-                            'size' => $item['size'],
-                            'price' => $item['price'],
-                            'quantity' => $item['quantity'],
-                            'total_price' => $item['total_price'],
-                            'special_request' => $item['special_request'],
+                            foreach ($duplicates as $dup) {
+                                $old = $dup->status;
+                                $dup->status = 'dibatalkan';
+                                $dup->save();
+                                Log::info('Cancelled duplicate pre-order before creating OP/OC orders', [
+                                    'duplicate_order_id' => $dup->id,
+                                    'old_status' => $old,
+                                    'new_status' => $dup->status,
+                                    'total_amount' => $dup->total_amount,
+                                ]);
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('Failed cancelling potential duplicate pre-orders (OP/OC path)', ['error' => $e->getMessage()]);
+                    }
+
+                    // Pisahkan item menjadi produk (prod) dan custom
+                    $items = collect($pendingOrder['items'] ?? []);
+                    $prodItems = $items->filter(fn($it) => ($it['type'] ?? 'prod') === 'prod')->values();
+                    $customItems = $items->filter(fn($it) => ($it['type'] ?? 'prod') !== 'prod')->values();
+
+                    $sumTotal = function ($col) {
+                        return (int) $col->sum(function ($it) {
+                            $qty = (int)($it['quantity'] ?? 1);
+                            $price = (int)($it['price'] ?? 0);
+                            return (int)($it['total_price'] ?? ($price * $qty));
+                        });
+                    };
+
+                    $prodTotal = $sumTotal($prodItems);
+                    $customTotal = $sumTotal($customItems);
+
+                    $paymentMethod = $this->mapPaymentType($notif->payment_type ?? 'unknown');
+
+                    // Buat order OP- untuk produk jika ada
+                    if ($prodItems->isNotEmpty()) {
+                        $opCode = 'OP-' . $notif->order_id;
+                        $opOrder = \App\Models\Order::create([
+                            'user_id' => $userId,
+                            'kode_pesanan' => $opCode,
+                            'order_code' => $opCode,
+                            'status' => 'diproses',
+                            'total_harga' => $prodTotal,
+                            'total_amount' => $prodTotal,
+                            'metode_pembayaran' => $paymentMethod,
+                            'paid_at' => now(),
                         ]);
 
-                        Log::info('Order Item Created', ['item_id' => $orderItem->id]);
+                        foreach ($prodItems as $item) {
+                            \App\Models\OrderItem::create([
+                                'order_id' => $opOrder->id,
+                                'product_id' => ((($item['product_id'] ?? null) === '' || ($item['product_id'] ?? null) === 0) ? null : ($item['product_id'] ?? null)),
+                                'garment_type' => $item['garment_type'] ?? 'Product Order',
+                                'fabric_type' => $item['fabric_type'] ?? 'Standard',
+                                'size' => $item['size'] ?? 'M',
+                                'price' => (int)($item['price'] ?? 0),
+                                'quantity' => (int)($item['quantity'] ?? 1),
+                                'total_price' => (int)($item['total_price'] ?? 0),
+                                'special_request' => $item['special_request'] ?? null,
+                                'status' => 'menunggu',
+                            ]);
+                        }
+
+                        Log::info('OP order created from cart payment', [
+                            'order_id' => $opOrder->id,
+                            'order_code' => $opCode,
+                            'items_count' => $prodItems->count(),
+                            'total' => $prodTotal,
+                        ]);
+                    }
+
+                    // Buat order OC- untuk custom jika ada
+                    if ($customItems->isNotEmpty()) {
+                        $ocCode = 'OC-' . $notif->order_id;
+                        $ocOrder = \App\Models\Order::create([
+                            'user_id' => $userId,
+                            'kode_pesanan' => $ocCode,
+                            'order_code' => $ocCode,
+                            'status' => 'diproses',
+                            'total_harga' => $customTotal,
+                            'total_amount' => $customTotal,
+                            'metode_pembayaran' => $paymentMethod,
+                            'paid_at' => now(),
+                        ]);
+
+                        foreach ($customItems as $item) {
+                            \App\Models\OrderItem::create([
+                                'order_id' => $ocOrder->id,
+                                // Custom orders should not be tied to a product
+                                'product_id' => null,
+                                'garment_type' => $item['garment_type'] ?? 'Order Custom',
+                                'fabric_type' => $item['fabric_type'] ?? 'Custom Fabric',
+                                'size' => $item['size'] ?? 'Custom',
+                                'price' => (int)($item['price'] ?? 0),
+                                'quantity' => (int)($item['quantity'] ?? 1),
+                                'total_price' => (int)($item['total_price'] ?? 0),
+                                'special_request' => $item['special_request'] ?? null,
+                                'status' => 'menunggu',
+                            ]);
+                        }
+
+                        Log::info('OC order created from cart payment', [
+                            'order_id' => $ocOrder->id,
+                            'order_code' => $ocCode,
+                            'items_count' => $customItems->count(),
+                            'total' => $customTotal,
+                        ]);
                     }
 
                     // Hapus item dari keranjang
@@ -481,9 +602,10 @@ class MidtransController extends Controller
                         Log::info('Cart Items Removed', ['removed_ids' => $selectedIds]);
                     }
 
-                    // Hapus pending order dari session
+                    // Hapus pending order dari session dan cache
                     session()->forget('pending_order');
-                    Log::info('Pending Order Cleared from Session');
+                    cache()->forget('pending_order_' . $notif->order_id);
+                    Log::info('Pending Order Cleared from Session and Cache');
                 } else {
                     Log::warning('Pending Order Not Found or Mismatch', [
                         'expected_order_code' => $notif->order_id,
@@ -494,6 +616,8 @@ class MidtransController extends Controller
 
             // Update status order yang sudah ada
             if ($order) {
+                // Hapus cache pending order karena order sudah ditemukan
+                cache()->forget('pending_order_' . $notif->order_id);
                 Log::info('=== [MIDTRANS] UPDATING EXISTING ORDER ===', [
                     'order_id' => $order->id,
                     'order_code' => $order->order_code,
@@ -506,7 +630,7 @@ class MidtransController extends Controller
                 $oldStatus = $order->status;
                 $oldPaymentMethod = $order->metode_pembayaran;
 
-                // Mapping status Midtrans ke status order di DB (force override)
+                // Mapping status Midtrans ke status order di DB (sesuai enum values)
                 $statusMap = [
                     'pending'     => 'menunggu',
                     'capture'     => 'diproses',

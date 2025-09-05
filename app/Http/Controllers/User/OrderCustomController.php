@@ -181,7 +181,8 @@ class OrderCustomController extends Controller
             }
 
             $user = Auth::user();
-            $orderCode = 'ORD-' . now()->format('YmdHis') . '-' . $user->id;
+            // Kode khusus untuk order custom: OC-
+            $orderCode = 'OC-' . now()->format('YmdHis') . '-' . $user->id;
 
             // Cek jika order sudah ada (hindari double order)
             $order = \App\Models\Order::where('order_code', $orderCode)->first();

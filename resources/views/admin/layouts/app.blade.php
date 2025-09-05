@@ -6,13 +6,15 @@
     <title>@yield('title', 'App')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <style>
         :root {
             --main-tan: #A38C6C;
         }
     </style>
     @php
-        $route = Route::currentRouteName();
+    $route = Route::currentRouteName();
     @endphp
 </head>
 

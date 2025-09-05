@@ -49,7 +49,7 @@ class PesananController extends Controller
         $userId = Auth::id();
         $totalAmount = $product->price * $data['qty'];
 
-        // Simpan order produk dengan order_id format 'order{ID}'
+        // Simpan order produk dengan kode berawalan OP-
         $order = Order::create([
             'user_id'           => $userId,
             'kode_pesanan'      => null, // diisi setelah dapat ID
@@ -60,8 +60,8 @@ class PesananController extends Controller
             'metode_pembayaran' => null,
         ]);
 
-        // Update order_code dan kode_pesanan setelah ID didapat
-        $orderCode = 'order' . $order->id;
+        // Update order_code dan kode_pesanan setelah ID didapat (OP-)
+        $orderCode = 'OP-' . now()->format('YmdHis') . '-' . $order->id;
         $order->order_code = $orderCode;
         $order->kode_pesanan = $orderCode;
         $order->save();
