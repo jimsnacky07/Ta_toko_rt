@@ -16,6 +16,18 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/`toko_rt` /*!40100 DEFAULT CHARACTER SET
 
 USE `toko_rt`;
 
+/*Table structure for table `cache` */
+
+DROP TABLE IF EXISTS `cache`;
+
+CREATE TABLE `cache` (
+  `key` varchar(255) NOT NULL,
+  `value` mediumtext NOT NULL,
+  `expiration` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `cache` */
+
 /*Table structure for table `data_ukuran_badan` */
 
 DROP TABLE IF EXISTS `data_ukuran_badan`;
@@ -40,12 +52,12 @@ CREATE TABLE `data_ukuran_badan` (
   PRIMARY KEY (`id`),
   KEY `data_ukuran_badan_user_id_foreign` (`user_id`),
   CONSTRAINT `data_ukuran_badan_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `data_ukuran_badan` */
 
 insert  into `data_ukuran_badan`(`id`,`user_id`,`lingkaran_dada`,`lingkaran_pinggang`,`lingkaran_pinggul`,`lingkaran_leher`,`lingkaran_lengan`,`lingkaran_paha`,`lingkaran_lutut`,`panjang_baju`,`panjang_lengan`,`panjang_celana`,`panjang_rok`,`lebar_bahu`,`created_at`,`updated_at`) values 
-(1,13,20,20,20,20,20,20,20,20,20,20,0,20,'2025-09-03 16:41:41','2025-09-03 16:53:23');
+(8,13,12,21,21,12,12,21,21,12,12,21,NULL,12,'2025-09-05 16:02:49','2025-09-05 16:06:47');
 
 /*Table structure for table `failed_jobs` */
 
@@ -150,14 +162,19 @@ CREATE TABLE `order_items` (
   KEY `order_items_product_id_foreign` (`product_id`),
   CONSTRAINT `order_items_order_id_foreign` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
   CONSTRAINT `order_items_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `order_items` */
 
 insert  into `order_items`(`id`,`order_id`,`product_id`,`garment_type`,`fabric_type`,`size`,`price`,`quantity`,`total_price`,`special_request`,`image`,`status`,`created_at`,`updated_at`) values 
-(7,31,NULL,'baju_seragam','batik','baju',182500.00,1,182500.00,'Test Dulu',NULL,'pending','2025-09-03 16:34:34','2025-09-03 16:34:34'),
-(8,32,NULL,'baju_dinas','nagata drill','baju',222750.00,1,222750.00,'Baju BEM',NULL,'pending','2025-09-03 16:41:41','2025-09-03 16:41:41'),
-(9,33,NULL,'baju_dinas','kopri','baju',240000.00,1,240000.00,'Baju Policy',NULL,'pending','2025-09-03 16:49:12','2025-09-03 16:49:12');
+(52,82,NULL,'Ready Made','Standard','L',100000.00,1,100000.00,NULL,NULL,'menunggu','2025-09-05 16:01:14','2025-09-05 16:01:14'),
+(53,83,1,'celana_levis','jeans','Custom',310000.00,1,310000.00,'-',NULL,'menunggu','2025-09-05 16:01:14','2025-09-05 16:01:14'),
+(54,85,NULL,'dress','katun','baju',255000.00,1,255000.00,'-',NULL,'pending','2025-09-05 16:02:49','2025-09-05 16:02:49'),
+(55,87,NULL,'Ready Made','Standard','L',100000.00,1,100000.00,NULL,NULL,'menunggu','2025-09-05 16:05:25','2025-09-05 16:05:25'),
+(56,88,1,'celana_levis','jeans','Custom',310000.00,1,310000.00,'-',NULL,'menunggu','2025-09-05 16:05:25','2025-09-05 16:05:25'),
+(57,89,NULL,'celana_bahan','linen','celana',280000.00,1,280000.00,'-',NULL,'pending','2025-09-05 16:06:47','2025-09-05 16:06:47'),
+(58,90,NULL,'Ready Made','Standard','L',100000.00,1,100000.00,NULL,NULL,'menunggu','2025-09-05 16:07:17','2025-09-05 16:07:17'),
+(59,91,1,'celana_bahan','linen','Custom',280000.00,1,280000.00,'-',NULL,'menunggu','2025-09-05 16:07:17','2025-09-05 16:07:17');
 
 /*Table structure for table `orders` */
 
@@ -189,18 +206,21 @@ CREATE TABLE `orders` (
   UNIQUE KEY `orders_order_code_unique` (`order_code`),
   KEY `orders_user_id_status_index` (`user_id`,`status`),
   CONSTRAINT `orders_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=92 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `orders` */
 
 insert  into `orders`(`id`,`user_id`,`kode_pesanan`,`order_code`,`status`,`total_harga`,`total_amount`,`metode_pembayaran`,`bukti_pembayaran`,`nama_pengiriman`,`no_telp_pengiriman`,`alamat_pengiriman`,`kota_pengiriman`,`kecamatan_pengiriman`,`kode_pos_pengiriman`,`catatan`,`tailor_id`,`paid_at`,`created_at`,`updated_at`) values 
-(24,13,'ORD-20250903161116250-ZA2PTK','ORD-20250903161116250-ZA2PTK','diproses',85000.00,85000.00,'Bank Transfer BNI',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-03 16:11:30','2025-09-03 16:11:16','2025-09-03 16:11:30'),
-(25,13,'ORD-20250903161217250-RXUHNI','ORD-20250903161217250-RXUHNI','diproses',220000.00,220000.00,'QRIS',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-03 16:12:35','2025-09-03 16:12:17','2025-09-03 16:12:35'),
-(26,13,'ORD-20250903161303061-HBWPQP','ORD-20250903161303061-HBWPQP','diproses',180000.00,180000.00,'QRIS',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-03 16:13:32','2025-09-03 16:13:03','2025-09-03 16:13:32'),
-(27,13,'ORD-20250903161416462-XWJMUP','ORD-20250903161416462-XWJMUP','diproses',180000.00,180000.00,'Bank Transfer BRI',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-03 16:14:34','2025-09-03 16:14:16','2025-09-03 16:14:34'),
-(31,13,'ORD-20250903163434-13','ORD-20250903163434-13','diproses',182500.00,182500.00,'Bank Transfer BCA',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-03 16:34:47','2025-09-03 16:34:34','2025-09-03 16:34:47'),
-(32,13,'ORD-20250903164141-13','ORD-20250903164141-13','diproses',222750.00,222750.00,'Bank Transfer BCA',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-03 16:41:58','2025-09-03 16:41:41','2025-09-03 16:41:58'),
-(33,13,'ORD-20250903164912-13','ORD-20250903164912-13','diproses',240000.00,240000.00,'QRIS',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,2,'2025-09-03 16:49:29','2025-09-03 16:49:12','2025-09-03 17:06:35');
+(82,13,'OP-ORDER9934','OP-ORDER9934','diproses',100000.00,100000.00,'Bank Transfer',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:01:14','2025-09-05 16:01:14','2025-09-05 16:01:14'),
+(83,13,'OC-ORDER9934','OC-ORDER9934','selesai',310000.00,310000.00,'Bank Transfer',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,2,'2025-09-05 16:01:14','2025-09-05 16:01:14','2025-09-05 16:59:45'),
+(84,13,'ORD-20250905160148051-PGNKLI','ORD-20250905160148051-PGNKLI','diproses',85000.00,85000.00,'Bank Transfer BNI',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:02:07','2025-09-05 16:01:48','2025-09-05 16:02:07'),
+(85,13,'OC-20250905160249-13','OC-20250905160249-13','diproses',255000.00,255000.00,'Bank Transfer BNI',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:03:06','2025-09-05 16:02:49','2025-09-05 16:03:06'),
+(86,13,'OP-20250905160412091-AZDKDN','OP-20250905160412091-AZDKDN','diproses',180000.00,180000.00,'QRIS',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:04:37','2025-09-05 16:04:12','2025-09-05 16:04:37'),
+(87,13,'OP-ORDER0918','OP-ORDER0918','diproses',100000.00,100000.00,'QRIS',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:05:25','2025-09-05 16:05:25','2025-09-05 16:05:25'),
+(88,13,'OC-ORDER0918','OC-ORDER0918','diproses',310000.00,310000.00,'QRIS',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:05:25','2025-09-05 16:05:25','2025-09-05 16:05:25'),
+(89,13,'OC-20250905160647-13','OC-20250905160647-13','dibatalkan',280000.00,280000.00,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:06:47','2025-09-05 16:07:17'),
+(90,13,'OP-ORDER1328','OP-ORDER1328','diproses',100000.00,100000.00,'QRIS',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:07:17','2025-09-05 16:07:17','2025-09-05 16:07:17'),
+(91,13,'OC-ORDER1328','OC-ORDER1328','diproses',280000.00,280000.00,'QRIS',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2025-09-05 16:07:17','2025-09-05 16:07:17','2025-09-05 16:07:17');
 
 /*Table structure for table `products` */
 
@@ -284,7 +304,7 @@ insert  into `users`(`id`,`nama`,`email`,`email_verified_at`,`password`,`remembe
 (9,'Maya Sari','maya@user.com','2025-08-29 07:25:36','$2y$10$RGM2c9E1Gjv6rIeiVH7Aou9KwPylEe8Z7mljH2.NXDj9P4AiwGLHW',NULL,'081234567898','Jl. Tulip No. 3, Denpasar','user','2025-08-29 07:25:36','2025-08-29 07:25:36'),
 (10,'Indra Gunawan','indra@user.com','2025-08-29 07:25:36','$2y$10$RGM2c9E1Gjv6rIeiVH7Aou9KwPylEe8Z7mljH2.NXDj9P4AiwGLHW',NULL,'081234567899','Jl. Sakura No. 11, Makassar','user','2025-08-29 07:25:36','2025-08-29 07:25:36'),
 (11,'Lestari Wulandari','lestari@user.com','2025-08-29 07:25:36','$2y$10$RGM2c9E1Gjv6rIeiVH7Aou9KwPylEe8Z7mljH2.NXDj9P4AiwGLHW',NULL,'081234567800','Jl. Bougenville No. 25, Palembang','user','2025-08-29 07:25:36','2025-08-29 07:25:36'),
-(12,'YUDHA BIMA SAKTI','yudhabimasakti787@gmail.com',NULL,'$2y$12$41ubM110biq1cphFDajyhuNulJNTbRo/NiGWI1HmaSq6amELOuo.O',NULL,'083838294757','Jl. Rimbo Data No. 12','admin','2025-09-02 15:57:58','2025-09-02 15:57:58'),
+(12,'YUDHA BIMA SAKTI','yudhabimasakti787@gmail.com',NULL,'$2y$12$41ubM110biq1cphFDajyhuNulJNTbRo/NiGWI1HmaSq6amELOuo.O',NULL,'083838294757','Jl. Rimbo Data No. 12','tailor','2025-09-02 15:57:58','2025-09-02 15:57:58'),
 (13,'Anton Sabu','anton@gmail.com',NULL,'$2y$12$7RJSwDJvoV9DawLrDK.EmeG7qnUwCYEMPxOfi3CvaVEItyQbtlJ5e',NULL,'081234567890','padang','user','2025-09-02 16:26:15','2025-09-02 16:26:15');
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
