@@ -146,8 +146,8 @@ class MidtransController extends Controller
             'tailor_id'         => $r->tailor_id,
             'amount'            => $r->amount,
             'gross_amount'      => $r->amount,
-            'status'            => 'PENDING',     // status bayar
-            'production_status' => 'QUEUE',       // status produksi (tailor)
+            'status'            => 'menunggu',     // status bayar
+            'production_status' => 'menunggu',       // status produksi (tailor)
             'queue_date'        => now()->toDateString(),
             'queue_no'          => 1,             // TODO: ganti sesuai logic antrianmu
         ]);
@@ -156,7 +156,7 @@ class MidtransController extends Controller
         Payment::create([
             'order_id'     => $order->id,
             'gross_amount' => $order->amount,
-            'status'       => 'pending',
+            'status'       => 'menunggu',
         ]);
 
         $params = [
@@ -339,7 +339,7 @@ class MidtransController extends Controller
                             $table->id();
                             $table->unsignedBigInteger('user_id');
                             $table->string('order_code')->unique();
-                            $table->string('status')->default('pending');
+                            $table->string('status')->default('menunggu');
                             $table->decimal('total_amount', 10, 2);
                             $table->timestamp('paid_at')->nullable();
                             $table->timestamps();
@@ -398,7 +398,7 @@ class MidtransController extends Controller
                         'user_id' => $userId,
                         'kode_pesanan' => $notif->order_id,
                         'order_code' => $notif->order_id,
-                        'status' => 'diproses', // Status sesuai enum values
+                        'status' => 'menunggu', // Status sesuai enum values
                         'total_harga' => $notif->gross_amount ?? 0,
                         'total_amount' => $notif->gross_amount ?? 0,
                         'metode_pembayaran' => $this->mapPaymentType($notif->payment_type ?? 'unknown'),
@@ -443,6 +443,9 @@ class MidtransController extends Controller
                             'status' => 'menunggu' // Status sesuai enum values
                         ]);
                     }
+
+                    // Sinkronisasi status order_items dengan status order
+                    $order->syncOrderItemsStatus();
 
                     Log::info('Order Created from Notification', [
                         'order_id' => $order->id,
@@ -542,6 +545,9 @@ class MidtransController extends Controller
                             ]);
                         }
 
+                        // Sinkronisasi status order_items dengan status order
+                        $opOrder->syncOrderItemsStatus();
+
                         Log::info('OP order created from cart payment', [
                             'order_id' => $opOrder->id,
                             'order_code' => $opCode,
@@ -579,6 +585,9 @@ class MidtransController extends Controller
                                 'status' => 'menunggu',
                             ]);
                         }
+
+                        // Sinkronisasi status order_items dengan status order
+                        $ocOrder->syncOrderItemsStatus();
 
                         Log::info('OC order created from cart payment', [
                             'order_id' => $ocOrder->id,

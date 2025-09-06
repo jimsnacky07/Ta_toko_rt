@@ -3,11 +3,11 @@
 
 @section('content')
 @php
-  use Illuminate\Support\Str;
-  $img = $item->image
-    ? (Str::startsWith($item->image, ['http://','https://']) ? $item->image
-       : asset('storage/'.$item->image))
-    : null;
+use Illuminate\Support\Str;
+$img = $item->image
+? (Str::startsWith($item->image, ['http://','https://']) ? $item->image
+: asset(Str::startsWith($item->image, 'images/') ? $item->image : 'images/'.$item->image))
+: null;
 @endphp
 
 <section class="mx-auto max-w-5xl">
@@ -17,9 +17,9 @@
     {{-- Gambar besar --}}
     <div class="rounded-xl border bg-white shadow-sm p-4 flex items-center justify-center">
       @if($img)
-        <img src="{{ $img }}" alt="{{ $item->name }}" class="max-h-[480px] w-full object-contain">
+      <img src="{{ $img }}" alt="{{ $item->name }}" class="max-h-[480px] w-full object-contain">
       @else
-        <div class="h-[320px] w-full bg-gray-100 flex items-center justify-center text-gray-400">Image</div>
+      <div class="h-[320px] w-full bg-gray-100 flex items-center justify-center text-gray-400">Image</div>
       @endif
     </div>
 
@@ -40,19 +40,19 @@
     <div class="border-b px-5 py-3 font-semibold">Spesifikasi Produk</div>
     <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3">
       @if(!empty($item->kategory))
-        <div class="flex justify-between"><span class="text-gray-600">Kategori</span><span>{{ $item->kategory }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-600">Kategori</span><span>{{ $item->kategory }}</span></div>
       @endif
       @if(!empty($item->bahan))
-        <div class="flex justify-between"><span class="text-gray-600">Bahan</span><span>{{ $item->bahan }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-600">Bahan</span><span>{{ $item->bahan }}</span></div>
       @endif
       @if(!empty($item->motif))
-        <div class="flex justify-between"><span class="text-gray-600">Motif</span><span>{{ $item->motif }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-600">Motif</span><span>{{ $item->motif }}</span></div>
       @endif
       @if(!empty($item->dikirim_dari))
-        <div class="flex justify-between"><span class="text-gray-600">Dikirim Dari</span><span>{{ $item->dikirim_dari }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-600">Dikirim Dari</span><span>{{ $item->dikirim_dari }}</span></div>
       @endif
       @if(empty($item->kategory) && empty($item->bahan) && empty($item->motif) && empty($item->dikirim_dari))
-        <div class="text-gray-500">Belum ada spesifikasi.</div>
+      <div class="text-gray-500">Belum ada spesifikasi.</div>
       @endif
     </div>
   </div>
@@ -67,10 +67,10 @@
 
   {{-- (Opsional) Size Chart --}}
   @if(!empty($item->size_chart))
-    <div class="mt-6 rounded-xl border bg-white shadow-sm">
-      <div class="border-b px-5 py-3 font-semibold">Size Chart</div>
-      <div class="p-5">{!! nl2br(e($item->size_chart)) !!}</div>
-    </div>
+  <div class="mt-6 rounded-xl border bg-white shadow-sm">
+    <div class="border-b px-5 py-3 font-semibold">Size Chart</div>
+    <div class="p-5">{!! nl2br(e($item->size_chart)) !!}</div>
+  </div>
   @endif
 </section>
 @endsection

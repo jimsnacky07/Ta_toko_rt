@@ -21,19 +21,16 @@ class DataPesananController extends Controller
 
     /**
      * Daftar order yang ditugaskan ke tailor yang sedang login.
-     * View: resources/views/tailor/pesanan/data_pesanan.blade.php
+     * View: resources/views/tailor/data_pesanan.blade.php
      */
     public function index(Request $r)
     {
-        $tailor = Tailor::where('user_id', $r->user()->id)->firstOrFail();
-
-        $orders = Order::with(['user','payment','tailor'])
-            ->where('tailor_id', $tailor->id)
+        // Mengambil semua pesanan dari database orders dengan relasi user
+        $orders = Order::with(['user', 'orderItems'])
             ->latest()
-            ->paginate(20);
+            ->get();
 
-        // >> GANTI KE VIEW YANG KAMU MAU <<
-        return view('tailor.pesanan.data_pesanan', compact('orders','tailor'));
+        return view('tailor.data_pesanan', compact('orders'));
     }
 
     /**
@@ -51,6 +48,56 @@ class DataPesananController extends Controller
 
         // Kalau file view detail kamu masih di tempat lama, samakan path-nya.
         return view('tailor.pesanan.show', compact('order'));
+    }
+
+    /**
+     * Detail pesanan lengkap untuk tailor dengan data ukuran badan
+     */
+    public function showDetail($id)
+    {
+        $order = Order::with([
+            'user.dataUkuranBadan',
+            'orderItems'
+        ])->findOrFail($id);
+
+        return view('tailor.show', compact('order'));
+    }
+
+    /**
+     * Update status pesanan dari tailor
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:menunggu,diproses,selesai,dibatalkan,siap-diambil'
+        ]);
+
+        $order = Order::findOrFail($id);
+        $oldStatus = $order->status;
+        $newStatus = $request->status;
+
+        if ($oldStatus !== $newStatus) {
+            $order->update(['status' => $newStatus]);
+            
+            // Sinkronisasi status order_items dengan status order
+            $order->syncOrderItemsStatus();
+            
+            // Log perubahan status
+            \Illuminate\Support\Facades\Log::info("Status order {$order->id} changed from {$oldStatus} to {$newStatus} by tailor, order_items status synced");
+        }
+
+        return back()->with('success', 'Status pesanan dan item berhasil diperbarui');
+    }
+
+    /**
+     * Sinkronisasi manual status order_items dengan status order
+     */
+    public function syncOrderItemsStatus($id)
+    {
+        $order = Order::findOrFail($id);
+        $order->syncOrderItemsStatus();
+        
+        return back()->with('success', 'Status item berhasil disinkronkan dengan status pesanan');
     }
 
     /**

@@ -26,14 +26,8 @@ class OrderController extends Controller
     {
         $q      = $request->input('q');
         $status = $request->input('status');
-        $type   = $request->input('type', 'all'); // default 'all'
 
-        // Hitung jumlah pesanan untuk tab
-        $allCount     = Order::count();
-        $productCount = Order::where('order_code', 'like', 'OP-%')->count();
-        $customCount  = Order::where('order_code', 'like', 'OC-%')->count();
-
-        $orders = Order::with(['user', 'tailor', 'orderItems'])
+        $orders = Order::with(['user', 'payment', 'tailor'])
             ->when($q, function ($query) use ($q) {
                 $query->whereHas('user', function ($u) use ($q) {
                     $u->where('name', 'like', "%{$q}%")
@@ -45,34 +39,14 @@ class OrderController extends Controller
                     ->orWhereDate('created_at', $q);
             })
             ->when($status, fn($query) => $query->where('status', $status))
-            ->when(
-                $type === 'product',
-                fn($query) =>
-                $query->where('order_code', 'like', 'OP-%')
-            )
-            ->when(
-                $type === 'custom',
-                fn($query) =>
-                $query->where('order_code', 'like', 'OC-%')
-            )
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
         $tailors = \App\Models\User::where('level', 'tailor')->orderBy('nama')->get();
 
-        return view('admin.daftar-pesanan', compact(
-            'orders',
-            'tailors',
-            'q',
-            'status',
-            'type',
-            'allCount',
-            'productCount',
-            'customCount'
-        ));
+        return view('admin.daftar-pesanan', compact('orders', 'tailors', 'q', 'status'));
     }
-
 
     /**
      * Detail order baru (opsional kalau kamu punya halaman show untuk order baru)
@@ -105,7 +79,10 @@ class OrderController extends Controller
         $order->tailor_id = $r->tailor_id;
         $order->save();
 
-        return back()->with('ok', 'Tailor ditetapkan');
+        // Sinkronisasi status order_items dengan status order
+        $order->syncOrderItemsStatus();
+
+        return back()->with('ok', 'Tailor ditetapkan dan status item disinkronkan');
     }
 
     /**
@@ -147,12 +124,15 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $request->validate([
-            'status' => 'required|in:menunggu,diproses,selesai,dibatalkan,siap-diambil'
+            'status' => 'required|in:pending,paid,menunggu,diproses,selesai,cancelled'
         ]);
 
         $order->update(['status' => $request->status]);
 
-        return response()->json(['success' => true, 'message' => 'Status berhasil diupdate']);
+        // Sinkronisasi status order_items dengan status order
+        $order->syncOrderItemsStatus();
+
+        return response()->json(['success' => true, 'message' => 'Status order dan item berhasil diupdate']);
     }
 
     /* =========================================================

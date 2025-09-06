@@ -22,9 +22,9 @@ $name = $firstItem['name'] ?? (null ?? ($data['product_name'] ?? 'Produk'));
 // Gambar: bisa URL penuh, bisa nama file di storage
 $imageUrl = $firstItem['image_url'] ?? (null ?? ($data['image'] ?? ($data['gambar'] ?? null)));
 if ($imageUrl) {
-// kalau bukan http(s) dan bukan path absolut, bungkus storage
+// kalau bukan http(s) dan bukan path absolut, bungkus images
 if (!preg_match('#^(https?://|/)#i', $imageUrl)) {
-$imageUrl = asset('storage/' . $imageUrl);
+$imageUrl = asset('images/' . $imageUrl);
 }
 }
 
@@ -345,7 +345,7 @@ $total = isset($total) ? (int) $total : $subtotal + $shipping;
                     recalc('jnt');
                 });
             }
-            
+
 
             // lakukan kalkulasi awal sesuai nilai tersembunyi saat halaman dibuka
             recalc(pickupInp?.value === 'jnt' ? 'jnt' : 'store');

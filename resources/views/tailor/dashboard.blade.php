@@ -53,47 +53,51 @@
                 </thead>
                 <tbody>
                     @forelse($recentOrders ?? [] as $order)
-                        <tr class="border-b">
-                            <td class="p-3">#{{ $order->order_code ?? $order->kode_pesanan ?? $order->id }}</td>
-                            <td class="p-3">{{ $order->user->nama ?? $order->user->name ?? 'N/A' }}</td>
-                            <td class="p-3">
-                                @if(isset($order->orderItems) && $order->orderItems->count() > 0)
-                                    {{ $order->orderItems->first()->product_name }}
-                                    @if($order->orderItems->count() > 1)
-                                        <span class="text-gray-500">+{{ $order->orderItems->count() - 1 }} lainnya</span>
-                                    @endif
-                                @else
-                                    Produk Jahit
-                                @endif
-                            </td>
-                            <td class="p-3">
-                                <span class="px-2 py-1 rounded-full text-xs
+                    <tr class="border-b">
+                        <td class="p-3">
+                            <a href="{{ route('tailor.data.pesanan.show', $order->id) }}" class="text-blue-600 hover:text-blue-800 font-mono">
+                                #{{ $order->order_code ?? $order->kode_pesanan ?? $order->id }}
+                            </a>
+                        </td>
+                        <td class="p-3">{{ $order->user->nama ?? $order->user->name ?? 'N/A' }}</td>
+                        <td class="p-3">
+                            @if(isset($order->orderItems) && $order->orderItems->count() > 0)
+                            {{ $order->orderItems->first()->product_name }}
+                            @if($order->orderItems->count() > 1)
+                            <span class="text-gray-500">+{{ $order->orderItems->count() - 1 }} lainnya</span>
+                            @endif
+                            @else
+                            Produk Jahit
+                            @endif
+                        </td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded-full text-xs
                                     @if($order->status === 'menunggu') bg-blue-100 text-blue-800
                                     @elseif($order->status === 'diproses') bg-yellow-100 text-yellow-800
                                     @elseif($order->status === 'selesai') bg-green-100 text-green-800
                                     @else bg-gray-100 text-gray-800
                                     @endif">
-                                    {{ ucfirst($order->status) }}
-                                </span>
-                            </td>
-                            <td class="p-3">{{ $order->created_at->format('d/m/Y') }}</td>
-                        </tr>
+                                {{ ucfirst($order->status) }}
+                            </span>
+                        </td>
+                        <td class="p-3">{{ $order->created_at->format('d/m/Y') }}</td>
+                    </tr>
                     @empty
-                        <tr>
-                            <td colspan="5" class="p-6 text-center text-gray-500">
-                                Belum ada pesanan yang ditugaskan kepada Anda.
-                            </td>
-                        </tr>
+                    <tr>
+                        <td colspan="5" class="p-6 text-center text-gray-500">
+                            Belum ada pesanan yang ditugaskan kepada Anda.
+                        </td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         @if(isset($recentOrders) && $recentOrders->count() > 0)
-            <div class="p-4 border-t">
-                <a href="{{ route('tailor.orders') }}" class="text-blue-600 hover:underline">
-                    Lihat semua pesanan →
-                </a>
-            </div>
+        <div class="p-4 border-t">
+            <a href="{{ route('tailor.orders') }}" class="text-blue-600 hover:underline">
+                Lihat semua pesanan →
+            </a>
+        </div>
         @endif
     </div>
 </div>

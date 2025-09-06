@@ -15,23 +15,23 @@ class GaleriJahitController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $products = Product::when($q !== '', function ($query) use ($q) {
-                $starts   = $q.'%';
-                $contains = '%'.$q.'%';
+            $starts   = $q . '%';
+            $contains = '%' . $q . '%';
 
-                $query->where(function ($w) use ($starts, $contains) {
-                    $w->where('name', 'like', $starts)
-                      ->orWhere('name', 'like', $contains)
-                      ->orWhere('deskripsi', 'like', $contains);
-                })->orderByRaw(
-                    "CASE WHEN name LIKE ? THEN 0 WHEN name LIKE ? THEN 1 ELSE 2 END, name ASC",
-                    [$starts, $contains]
-                );
-            })
+            $query->where(function ($w) use ($starts, $contains) {
+                $w->where('name', 'like', $starts)
+                    ->orWhere('name', 'like', $contains)
+                    ->orWhere('deskripsi', 'like', $contains);
+            })->orderByRaw(
+                "CASE WHEN name LIKE ? THEN 0 WHEN name LIKE ? THEN 1 ELSE 2 END, name ASC",
+                [$starts, $contains]
+            );
+        })
             ->latest('id') // saat q kosong
             ->paginate(12)
             ->withQueryString();
 
-        return view('admin.galeri-jahit.index', compact('products','q'));
+        return view('admin.galeri-jahit.index', compact('products', 'q'));
     }
 
     public function create()
@@ -53,7 +53,7 @@ class GaleriJahitController extends Controller
         ]);
 
         if ($request->hasFile('gambar')) {
-            $data['gambar'] = $request->file('gambar')->store('pakaian', 'public');
+            $data['gambar'] = $request->file('gambar')->store('images', 'public');
         }
 
         $payload = [
@@ -67,12 +67,12 @@ class GaleriJahitController extends Controller
             'dikirim_dari' => $data['dikirim_dari'] ?? null,
         ];
 
-        $payload = array_filter($payload, fn ($v) => !is_null($v));
+        $payload = array_filter($payload, fn($v) => !is_null($v));
 
         Product::create($payload);
 
         return redirect()->route('admin.galeri.jahit.index')
-                         ->with('ok', 'Pakaian berhasil ditambahkan.');
+            ->with('ok', 'Pakaian berhasil ditambahkan.');
     }
 
     public function show(Product $product)
@@ -102,7 +102,7 @@ class GaleriJahitController extends Controller
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
             }
-            $data['gambar'] = $request->file('gambar')->store('pakaian', 'public');
+            $data['gambar'] = $request->file('gambar')->store('images', 'public');
         }
 
         $payload = [
@@ -119,12 +119,12 @@ class GaleriJahitController extends Controller
             $payload['image'] = $data['gambar'];
         }
 
-        $payload = array_filter($payload, fn ($v) => !is_null($v));
+        $payload = array_filter($payload, fn($v) => !is_null($v));
 
         $product->update($payload);
 
         return redirect()->route('admin.galeri.jahit.index')
-                         ->with('ok', 'Pakaian berhasil diperbarui.');
+            ->with('ok', 'Pakaian berhasil diperbarui.');
     }
 
     public function destroy(Product $product)

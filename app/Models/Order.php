@@ -55,10 +55,30 @@ class Order extends Model
     {
         return $this->hasMany(OrderItem::class, 'order_id');
     }
-    
+
     // Alias untuk konsistensi
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class, 'order_id');
+    }
+
+    /**
+     * Sinkronisasi status order_items dengan status order
+     */
+    public function syncOrderItemsStatus()
+    {
+        $statusMapping = [
+            'menunggu' => 'menunggu',
+            'diproses' => 'diproses',
+            'siap-diambil' => 'siap',
+            'selesai' => 'selesai',
+            'dibatalkan' => 'dibatalkan'
+        ];
+
+        $newStatus = $statusMapping[$this->status] ?? 'menunggu';
+
+        $this->orderItems()->update(['status' => $newStatus]);
+
+        \Illuminate\Support\Facades\Log::info("Synced order items status for order {$this->id} to {$newStatus}");
     }
 }

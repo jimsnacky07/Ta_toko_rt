@@ -22,7 +22,7 @@
         <aside :class="collapsed ? 'w-20' : 'w-64'" class="flex-shrink-0 transition-all duration-300"
             style="background-color: var(--main-tan); color: white;">
             <div class="h-16 px-4 flex items-center justify-between" style="background-color: #A38C6C;">
-                <div x-show="!collapsed" class="bg-[#EAE0C8] text-black px-4 py-1 rounded-full text-sm font-bold">Admin
+                <div x-show="!collapsed" class="bg-[#EAE0C8] text-black px-4 py-1 rounded-full text-sm font-bold">Tailor
                 </div>
                 <button @click="collapsed = !collapsed"
                     class="bg-gray-800 text-white w-8 h-8 rounded-full flex items-center justify-center">

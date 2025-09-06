@@ -3,89 +3,100 @@
 @section('title', 'Data Pesanan')
 
 @section('content')
-    <div class="max-w-7xl mx-auto">
-        <h1 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Data Pesanan Pelanggan</h1>
+<div class="max-w-7xl mx-auto">
+    @if(session('success'))
+    <div class="mb-4 p-3 bg-green-100 text-green-800 rounded">{{ session('success') }}</div>
+    @endif
 
-        <!-- Versi Tabel Data Pesanan -->
-        <table class="table-auto w-full border-collapse bg-white rounded shadow">
-            <thead>
-                <tr>
-                    <th class="px-4 py-2 border-b">No</th>
-                    <th class="px-4 py-2 border-b">Nama Pemesan</th>
-                    <th class="px-4 py-2 border-b">Tanggal/Hari</th>
-                    <th class="px-4 py-2 border-b">ID Pesanan</th>
-                    <th class="px-4 py-2 border-b">Status Produksi</th>
-                    <th class="px-4 py-2 border-b">Status Pesanan</th>
-                    <th class="px-4 py-2 border-b">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($orders as $index => $o)
-                    <tr>
-                        <td class="px-4 py-2 border-b">{{ $index + 1 }}</td>
-                        <td class="px-4 py-2 border-b">{{ optional($o->user)->name ?? optional($o->user)->nama ?? '-' }}</td>
-                        <td class="px-4 py-2 border-b">
-                            {{ \Carbon\Carbon::parse($o->order_date ?? $o->created_at)->format('l, j/n/Y') }}
+    <h1 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Pesanan Pelanggan</h1>
+
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-amber-100 text-gray-700">
+                    <tr class="border-b">
+                        <th class="p-3 text-left w-16">No</th>
+                        <th class="p-3 text-left">Nama Pemesan</th>
+                        <th class="p-3 text-left">Tanggal/Hari</th>
+                        <th class="p-3 text-left">ID Pesanan</th>
+                        <th class="p-3 text-left">Detail Pesanan</th>
+                        <th class="p-3 text-left">Status Pesanan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($orders as $index => $order)
+                    @php
+                    $namaUser = $order->user->nama ?? $order->user->name ?? '—';
+                    $kodeOrder = $order->order_code ?? $order->kode_pesanan ?? '#' . $order->id;
+                    $tanggal = $order->created_at;
+                    $hari = $tanggal->translatedFormat('l');
+                    $tanggalFormatted = $tanggal->format('d-m-Y');
+
+                    // Status colors
+                    $statusColors = [
+                    'menunggu' => 'bg-yellow-100 text-yellow-800',
+                    'diproses' => 'bg-blue-100 text-blue-800',
+                    'selesai' => 'bg-green-100 text-green-800',
+                    'paid' => 'bg-green-100 text-green-800',
+                    'pending' => 'bg-yellow-100 text-yellow-800',
+                    'cancelled' => 'bg-red-100 text-red-800',
+                    'dibatalkan' => 'bg-red-100 text-red-800',
+                    ];
+                    $statusClass = $statusColors[$order->status] ?? 'bg-gray-100 text-gray-800';
+                    @endphp
+
+                    <tr class="border-b last:border-0 hover:bg-gray-50">
+                        <td class="p-3">{{ $index + 1 }}</td>
+                        <td class="p-3">
+                            <div class="font-medium">{{ $namaUser }}</div>
                         </td>
-                        <td class="px-4 py-2 border-b">{{ $o->order_id ?? $o->order_code ?? $o->id }}</td>
-                        <td class="px-4 py-2 border-b">
-                            <span class="text-sm text-stone-600">
-                                {{ $o->production_status ?? '-' }}
-                            </span>
+                        <td class="p-3">
+                            <div class="font-medium">{{ $hari }}</div>
+                            <div class="text-xs text-gray-500">{{ $tanggalFormatted }}</div>
                         </td>
-                        <td class="px-4 py-2 border-b">
-                            <span class="text-sm font-semibold 
-                                {{ $o->status == 'selesai' ? 'text-green-500' : 
-                                    ($o->status == 'menunggu' ? 'text-yellow-500' : 'text-blue-500') }}">
-                                {{ ucfirst($o->status) }}
-                            </span>
+                        <td class="p-3">
+                            <span class="font-mono text-sm">{{ $kodeOrder }}</span>
                         </td>
-                        <td class="px-4 py-2 border-b">
-                            <a href="{{ route('tailor.orders.show', $o->order_id ?? $o->order_code ?? $o->id) }}"
-                               class="px-3 py-1 bg-black text-white rounded">Detail</a>
-                            
-                            <form action="{{ route('tailor.update.status', $o->id) }}" method="POST" class="inline-block mt-1">
-                                @csrf
-                                @method('PUT')
-                                <select name="status" class="border border-gray-300 rounded-md p-1">
-                                    <option value="menunggu" {{ $o->status == 'menunggu' ? 'selected' : '' }}>Menunggu</option>
-                                    <option value="selesai" {{ $o->status == 'selesai' ? 'selected' : '' }}>Selesai</option>
-                                    <option value="diambil" {{ $o->status == 'diambil' ? 'selected' : '' }}>Diambil</option>
-                                </select>
-                                <button type="submit" class="bg-blue-500 text-white py-1 px-3 rounded-md">Update</button>
-                            </form>
+                        <td class="p-3">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route('tailor.data.pesanan.show', $order->id) }}" class="text-blue-600 hover:text-blue-800" title="Lihat Detail">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <div class="flex items-center gap-2">
+                                <form action="{{ route('tailor.update.status', $order->id) }}" method="POST" class="flex items-center gap-2">
+                                    @csrf
+                                    @method('PUT')
+                                    <select name="status" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option value="menunggu" {{ $order->status == 'menunggu' ? 'selected' : '' }}>Menunggu Giliran</option>
+                                        <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : '' }}>Sedang Dikerjakan</option>
+                                        <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai Dikerjakan</option>
+                                        <option value="siap-diambil" {{ $order->status == 'siap-diambil' ? 'selected' : '' }}>Siap Diambil</option>
+                                    </select>
+                                    <button type="submit" class="text-blue-600 hover:text-blue-800 text-xs">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <!-- Versi Card List ala "Pesanan Untuk Saya" -->
-        <div class="mt-10">
-            <h2 class="text-xl font-semibold mb-4">Pesanan Untuk Saya (Ringkas)</h2>
-            @forelse($orders as $o)
-                <div class="bg-white rounded-xl shadow p-4 mb-3">
-                    <div class="flex justify-between">
-                        <div>
-                            <div class="font-semibold">{{ $o->title ?? ('Order #' . ($o->order_id ?? $o->id)) }}</div>
-                            <div class="text-xs text-gray-500">
-                                Order ID: {{ $o->order_id ?? $o->order_code ?? $o->id }}
-                                • User: {{ optional($o->user)->name ?? optional($o->user)->nama ?? '-' }}
-                            </div>
-                            @if($o->production_status)
-                                <div class="text-xs mt-1 text-stone-600">Produksi: {{ $o->production_status }}</div>
-                            @endif
-                        </div>
-                        <a href="{{ route('tailor.orders.show', $o->order_id ?? $o->order_code ?? $o->id) }}"
-                           class="px-3 py-1 bg-black text-white rounded">Detail</a>
-                    </div>
-                </div>
-            @empty
-                <div class="text-gray-500">Belum ada tugas.</div>
-            @endforelse
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            Belum ada data pesanan.
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-
-        <!-- Pagination -->
-        <div class="mt-4">{{ $orders->links() }}</div>
     </div>
+</div>
 @endsection

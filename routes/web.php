@@ -41,8 +41,8 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 
 // Register
-Route::get('/register', [App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [App\Http\Controllers\RegisterController::class, 'register']);
+Route::get('/register', [App\Http\Controllers\Auth\RegisterController::class, 'showRegistrationForm'])->name('register');
+Route::post('/register', [App\Http\Controllers\Auth\RegisterController::class, 'register']);
 
 // Lupa Password
 Route::get('/forgot-password', fn() => view('auth.forgot-password'))
@@ -759,9 +759,11 @@ Route::middleware(['auth', 'level:tailor'])->prefix('tailor')->name('tailor.')->
     // Riwayat & Data Pesanan
     Route::get('/riwayat-pesanan', [RiwayatPesananController::class, 'index'])->name('riwayat.pesanan');
     Route::get('/data-pesanan', [DataPesananController::class, 'index'])->name('data.pesanan');
+    Route::get('/data-pesanan/{id}', [DataPesananController::class, 'showDetail'])->name('data.pesanan.show');
 
     // Update status
     Route::put('/update-status/{id}', [DataPesananController::class, 'updateStatus'])->name('update.status');
+    Route::post('/sync-order-items/{id}', [DataPesananController::class, 'syncOrderItemsStatus'])->name('sync.order.items');
 
     // Legacy routes (can:is_tailor)
     Route::middleware('can:is_tailor')->group(function () {

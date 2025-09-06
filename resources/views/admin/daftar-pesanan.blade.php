@@ -12,30 +12,22 @@
 
   {{-- Tabs untuk jenis pesanan --}}
   <div class="mb-6">
-    <div class="mb-6 border-b border-gray-200">
-      <nav class="mb-px flex space-x-8">
-
-        {{-- Semua Pesanan --}}
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex space-x-8">
         <a href="{{ request()->fullUrlWithQuery(['type' => 'all']) }}"
           class="py-2 px-1 border-b-2 font-medium text-sm {{ $type === 'all' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
           Semua Pesanan ({{ $allCount }})
         </a>
-
-        {{-- Order Product --}}
         <a href="{{ request()->fullUrlWithQuery(['type' => 'product']) }}"
           class="py-2 px-1 border-b-2 font-medium text-sm {{ $type === 'product' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-          Order Product ({{ $productCount }})
+          Pesanan Produk ({{ $productCount }})
         </a>
-
-        {{-- Order Custom --}}
         <a href="{{ request()->fullUrlWithQuery(['type' => 'custom']) }}"
           class="py-2 px-1 border-b-2 font-medium text-sm {{ $type === 'custom' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
           Order Custom ({{ $customCount }})
         </a>
-
       </nav>
     </div>
-
   </div>
 
   {{-- Filter --}}
@@ -53,11 +45,7 @@
         <option value="cancelled" @selected(request('status')==='cancelled' )>Cancelled</option>
       </select>
       <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Filter</button>
-      <a href="{{ route('admin.orders.index') }}"
-        class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-center">
-        Reset
-      </a>
-
+      <a href="{{ route('admin.daftar.pesanan') }}" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-center">Reset</a>
     </div>
   </form>
 
@@ -193,21 +181,15 @@
 
             <td class="p-3">
               <div class="flex gap-2">
-                <button
-                  class="text-blue-600 hover:text-blue-800 text-sm"
-                  onclick="showOrderDetails({{ $o->id }})">
+                <button class="text-blue-600 hover:text-blue-800 text-sm" onclick="showOrderDetails({{ $o->id }})">
                   👁️ Detail
                 </button>
-
-                @if ($statusBayar !== 'selesai')
-                <button
-                  class="text-green-600 hover:text-green-800 text-sm"
-                  onclick="updateOrderStatus({{ $o->id }}, 'selesai')">
+                @if($statusBayar !== 'selesai')
+                <button class="text-green-600 hover:text-green-800 text-sm" onclick="updateOrderStatus({{ $o->id }}, 'selesai')">
                   ✅ Selesai
                 </button>
                 @endif
               </div>
-
             </td>
           </tr>
           @empty
