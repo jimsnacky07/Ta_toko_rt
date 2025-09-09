@@ -189,11 +189,13 @@ class KeranjangController extends Controller
         $harga     = $this->toInt($r->input('harga', 0));
         $gambar    = $r->input('gambar') ?: $r->input('image');
 
+        $fabricType = $r->input('fabric_type');
         if ($productId) {
             if ($product = Product::find($productId)) {
                 $nama   = $product->name ?? 'Produk Tidak Ditemukan';
                 $harga  = $this->toInt($product->price ?? 0);
                 $gambar = $product->image_url ?? $product->image ?? asset('images/placeholder.png');
+                $fabricType = $fabricType ?: ($product->bahan ?? null);
             }
         }
 
@@ -206,6 +208,7 @@ class KeranjangController extends Controller
             'qty'        => $qty,
             'gambar'     => $gambar,
             'image'      => $gambar,
+            'fabric_type' => $fabricType ?? '-',
             'color'      => $r->input('color'),
             'size'       => $r->input('size'),
         ];
@@ -554,7 +557,7 @@ class KeranjangController extends Controller
                 $orderItems[] = [
                     'type' => 'prod',
                     'product_id' => ($productId === '' || $productId === null) ? null : $productId,
-                    'garment_type' => 'Ready Made',
+                    'garment_type' => $name,
                     'fabric_type' => 'Standard',
                     'size' => $row['size'] ?? 'M',
                     'price' => $price,

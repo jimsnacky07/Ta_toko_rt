@@ -79,10 +79,11 @@ $img = $item->image
         <label class="block text-sm font-medium mb-1">Harga</label>
         <div class="relative">
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 select-none">Rp</span>
-          <input name="harga" type="number" min="0" step="1" class="pl-10"
-            required value="{{ old('harga', $item->price) }}">
+          <input name="harga" type="number" min="0" step="1" class="pl-10" required
+            value="{{ old('harga', $item->price) }}">
         </div>
-        <p class="text-xs text-gray-500 mt-1">Tulis angka saja, tanpa titik/koma. Contoh: <span class="font-medium">150000</span></p>
+        <p class="text-xs text-gray-500 mt-1">Tulis angka saja, tanpa titik/koma. Contoh: <span
+            class="font-medium">150000</span></p>
         @error('harga')<p class="text-red-600 text-sm mt-1">{{ $message }}</p>@enderror
       </div>
 
@@ -92,7 +93,8 @@ $img = $item->image
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-sm text-gray-700 mb-1">Kategori</label>
-            <input name="kategori" value="{{ old('kategori', $item->kategori ?? '') }}" placeholder="Contoh: Gaun, Kemeja">
+            <input name="kategori" value="{{ old('kategori', $item->kategory ?? '') }}"
+              placeholder="Contoh: Gaun, Kemeja">
           </div>
           <div>
             <label class="block text-sm text-gray-700 mb-1">Bahan</label>
@@ -104,7 +106,8 @@ $img = $item->image
           </div>
           <div>
             <label class="block text-sm text-gray-700 mb-1">Dikirim Dari</label>
-            <input name="dikirim_dari" value="{{ old('dikirim_dari', $item->dikirim_dari ?? '') }}" placeholder="Contoh: Bandung">
+            <input name="dikirim_dari" value="{{ old('dikirim_dari', $item->dikirim_dari ?? '') }}"
+              placeholder="Contoh: Bandung">
           </div>
         </div>
       </div>
@@ -114,7 +117,8 @@ $img = $item->image
         <label class="block text-sm font-medium mb-1">Deskripsi Ukuran</label>
         <textarea name="deskripsi" rows="5"
           placeholder="Tuliskan ukuran/size chart dan detail penting lainnya (panjang, lingkar dada, panduan perawatan, dll).">{{ old('deskripsi', $item->deskripsi) }}</textarea>
-        <p class="text-xs text-gray-500 mt-1">Contoh: Size S–XXL (lihat tabel), lingkar dada 86–102 cm, panjang 110 cm, cuci gentle.</p>
+        <p class="text-xs text-gray-500 mt-1">Contoh: Size S–XXL (lihat tabel), lingkar dada 86–102 cm, panjang 110 cm,
+          cuci gentle.</p>
         @error('deskripsi')<p class="text-red-600 text-sm mt-1">{{ $message }}</p>@enderror
       </div>
 
@@ -127,8 +131,7 @@ $img = $item->image
 
       <div class="flex items-center gap-3">
         <a href="{{ route('admin.galeri.jahit.index') }}" class="px-4 py-2 rounded-lg bg-gray-200">Batal</a>
-        <button
-          type="submit"
+        <button type="submit"
           class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1">
           Update
         </button>

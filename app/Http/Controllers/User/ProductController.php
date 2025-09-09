@@ -11,8 +11,8 @@ class ProductController extends Controller
 {
     public function dashboard()
     {
-        // Ambil 5 produk terbaru
-        $products = Product::latest()->limit(5)->get();
+        // Ambil semua produk terbaru (tanpa limit) agar dashboard menampilkan seluruh produk
+        $products = Product::latest()->get();
 
         // Kirim ke view dashboard
         return view('user.dashboard', compact('products'));

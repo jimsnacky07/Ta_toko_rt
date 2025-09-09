@@ -59,29 +59,42 @@
                         </td>
                         <td class="p-3">
                             <div class="flex items-center gap-2">
-                                <a href="{{ route('tailor.data.pesanan.show', $order->id) }}" class="text-blue-600 hover:text-blue-800" title="Lihat Detail">
+                                <a href="{{ route('tailor.data.pesanan.show', $order->id) }}"
+                                    class="text-blue-600 hover:text-blue-800" title="Lihat Detail">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                        </path>
                                     </svg>
                                 </a>
                             </div>
                         </td>
                         <td class="p-3">
                             <div class="flex items-center gap-2">
-                                <form action="{{ route('tailor.update.status', $order->id) }}" method="POST" class="flex items-center gap-2">
+                                <form action="{{ route('tailor.update.status', $order->id) }}" method="POST"
+                                    class="flex items-center gap-2">
                                     @csrf
                                     @method('PUT')
-                                    <select name="status" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                                        <option value="menunggu" {{ $order->status == 'menunggu' ? 'selected' : '' }}>Menunggu Giliran</option>
-                                        <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : '' }}>Sedang Dikerjakan</option>
-                                        <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai Dikerjakan</option>
-                                        <option value="siap-diambil" {{ $order->status == 'siap-diambil' ? 'selected' : '' }}>Siap Diambil</option>
+                                    <select name="status"
+                                        class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option value="menunggu" {{ $order->status == 'menunggu' ? 'selected' : ''
+                                            }}>Menunggu Giliran</option>
+                                        <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : ''
+                                            }}>Sedang Dikerjakan</option>
+                                        <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : ''
+                                            }}>Selesai Dikerjakan</option>
+                                        <option value="siap-diambil" {{ $order->status == 'siap-diambil' ? 'selected' :
+                                            '' }}>Siap Diambil</option>
                                     </select>
-                                    <button type="submit" class="text-blue-600 hover:text-blue-800 text-xs">
+                                    <button type="submit"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-blue-600 text-white text-xs hover:bg-blue-700">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M5 13l4 4L19 7" />
                                         </svg>
+                                        <span>Ubah</span>
                                     </button>
                                 </form>
                             </div>

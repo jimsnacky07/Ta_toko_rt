@@ -39,6 +39,13 @@
                     <!-- Riwayat pesanan -->
                     <li
                         class="py-3 px-5 flex items-center text-base font-medium text-black hover:bg-[#EAE0C8] {{ request()->routeIs('riwayat.pesanan') ? 'bg-[#EAE0C8]' : '' }}">
+                        <a href="{{ route('tailor.dashboard') }}" class="flex items-center gap-3 w-full">
+                            <img src="{{ asset('images/diagram_admin.png') }}" class="w-7 h-7" alt="Dashboard">
+                            <span x-show="!collapsed">Dashboard</span>
+                        </a>
+                    </li>
+                    <li
+                        class="py-3 px-5 flex items-center text-base font-medium text-black hover:bg-[#EAE0C8] {{ request()->routeIs('riwayat.pesanan') ? 'bg-[#EAE0C8]' : '' }}">
                         <a href="{{ route('tailor.riwayat.pesanan') }}" class="flex items-center gap-3 w-full">
                             <img src="{{ asset('images/pusat pesanan.png') }}" class="w-7 h-7" alt="Riwayat Pesanan">
                             <span x-show="!collapsed">Riwayat Pesanan</span>

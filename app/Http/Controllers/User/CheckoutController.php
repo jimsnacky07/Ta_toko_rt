@@ -39,7 +39,7 @@ class CheckoutController extends Controller
                 $nama  = $p->name  ?? $p->nama  ?? $p->product_name ?? 'Produk';
                 $harga = (int)($p->harga ?? $p->price ?? 0);
                 if ($harga <= 0) continue;
-
+                $bahan     = $request->input('bahan', '-');
                 $rawImage = $p->image ?? $p->gambar ?? null;
                 $imgUrl   = $this->normalizeImageUrl($rawImage);
                 $line     = $qty * $harga;
@@ -314,7 +314,10 @@ class CheckoutController extends Controller
         $orderId  = 'OP-' . now()->format('YmdHisv') . '-' . Str::upper(Str::random(6));
         $userId   = Auth::id();
         $userEmail = Auth::user() ? Auth::user()->email : null;
-        $cart = session('cart', []);
+        // Ambil data keranjang dari session. Aplikasi ini menggunakan kunci 'keranjang'.
+        // Tetap beri fallback ke 'cart' untuk kompatibilitas lama.
+        $keranjang = session('keranjang', []);
+        $cart      = session('cart', []);
         $items = [];
         $selectedCartIds = [];
 
@@ -331,7 +334,31 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Total pembayaran tidak valid. Silakan coba lagi.'], 400);
         }
 
-        if (!empty($cart)) {
+        if (!empty($keranjang)) {
+            // Struktur item 'keranjang' di app ini: {id: 'prod:ID', product_id, nama, harga, qty, gambar}
+            foreach ($keranjang as $kItem) {
+                $pid = (int)($kItem['product_id'] ?? (preg_match('/prod:(\d+)/', (string)($kItem['id'] ?? ''), $m) ? ($m[1] ?? 0) : 0));
+                $qty = max(0, (int)($kItem['qty'] ?? 0));
+                $harga = (int)($kItem['harga'] ?? 0);
+                if ($qty <= 0 || $harga <= 0) continue;
+                // Pastikan fabric_type diisi dari bahan produk (fallback jika tidak ada di item keranjang)
+                $productForType = $pid ? Product::find($pid) : null;
+                $fabricType = $kItem['bahan'] ?? ($productForType->bahan ?? '-');
+
+                $items[] = [
+                    'product_id'      => $pid ?: null,
+                    'garment_type'    => (string)($kItem['nama'] ?? 'Produk'),
+                    'fabric_type'     => $fabricType,
+                    'size'            => $request->input('size', '-') ?? '-',
+                    'price'           => $harga,
+                    'quantity'        => $qty,
+                    'total_price'     => $harga * $qty,
+                    'special_request' => $request->input('notes', ''),
+                ];
+                if ($pid) $selectedCartIds[] = (int)$pid;
+            }
+        } elseif (!empty($cart)) {
+            // Kompatibilitas lama: cart = [product_id => qty]
             $products = Product::whereIn('id', array_keys($cart))->get();
             foreach ($products as $p) {
                 $qty = max(0, (int)($cart[$p->id] ?? 0));
@@ -341,7 +368,7 @@ class CheckoutController extends Controller
                 $items[] = [
                     'product_id'      => $p->id,
                     'garment_type'    => $p->name ?? $p->nama ?? 'Produk',
-                    'fabric_type'     => $p->bahan ?? $p->fabric_type ?? '-',
+                    'fabric_type'     => $p->bahan,
                     'size'            => $request->input('size', '-') ?? '-',
                     'price'           => $harga,
                     'quantity'        => $qty,
@@ -359,6 +386,36 @@ class CheckoutController extends Controller
             'total_amount' => $finalTotal,
             'items' => $items,
         ]);
+
+        // Jika belum ada item dari keranjang/cart, bentuk 1 item dari data form checkout
+        if (empty($items)) {
+            $formQty   = max(1, (int) $request->input('qty', 1));
+            $formPrice = max(0, (int) $request->input('harga', 0));
+            $formName  = (string) $request->input('product_name', $name);
+            $formSize  = (string) $request->input('size', '-');
+            $formNote  = (string) $request->input('notes', '-');
+            $formPid   = $request->input('product_id');
+            $formBahan = $request->input('bahan', '-');
+            if ($formPrice > 0 && $formQty > 0) {
+                // Jika product_id valid dan form tidak membawa bahan, ambil dari DB
+                if (($formBahan === '-' || $formBahan === null || $formBahan === '') && $formPid) {
+                    $pf = Product::find($formPid);
+                    if ($pf && !empty($pf->bahan)) {
+                        $formBahan = $pf->bahan;
+                    }
+                }
+                $items[] = [
+                    'product_id'      => ($formPid === '' || $formPid === 0) ? null : $formPid,
+                    'garment_type'    => $formName ?: 'Produk',
+                    'fabric_type'     => $formBahan,
+                    'size'            => $formSize ?: '-',
+                    'price'           => (int) $formPrice,
+                    'quantity'        => (int) $formQty,
+                    'total_price'     => (int) $formPrice * (int) $formQty,
+                    'special_request' => $formNote,
+                ];
+            }
+        }
 
         // 2) BUAT ORDER DI DATABASE
         try {
@@ -378,6 +435,8 @@ class CheckoutController extends Controller
             ]);
 
             // 3) BUAT ORDER ITEMS
+            $pickupMethod = $validated['pickup_method'] ?? 'store';
+            $initialPickupStatus = $pickupMethod === 'jnt' ? 'Dikirim Via Kurir' : 'Diambil Ditoko';
             foreach ($items as $item) {
                 OrderItem::create([
                     'order_id'        => $order->id,
@@ -389,7 +448,7 @@ class CheckoutController extends Controller
                     'quantity'        => $item['quantity'],
                     'total_price'     => $item['total_price'],
                     'special_request' => $item['special_request'],
-                    'status'          => 'pending',
+                    'status'          => $initialPickupStatus,
                 ]);
             }
 
@@ -413,6 +472,7 @@ class CheckoutController extends Controller
             'total_amount'      => $finalTotal,
             'items'             => $items,
             'selected_cart_ids' => $selectedCartIds,
+            'pickup_method'     => $validated['pickup_method'] ?? 'store',
         ];
         session(['pending_order' => $pendingOrderArr]);
         Log::debug('[CHECKOUT] Simpan session pending_order', $pendingOrderArr);
@@ -469,6 +529,4 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Gagal membuat token pembayaran: ' . $e->getMessage()], 500);
         }
     }
-
-    public function payMidtrans() {}
 }

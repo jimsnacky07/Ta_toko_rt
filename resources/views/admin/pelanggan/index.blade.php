@@ -19,9 +19,9 @@ $list = isset($pelanggan) ? $pelanggan : ($customers ?? collect());
                 <th class="px-4 py-2 border-b">Nama</th>
                 <th class="px-4 py-2 border-b">No Telpon</th>
                 <th class="px-4 py-2 border-b">Total Orders</th>
-                <th class="px-4 py-2 border-b">Action</th>
-                <th class="px-4 py-2 border-b">Status Pembayaran</th>
+                <th class="px-4 py-2 border-b">Metode Pembayaran</th>
                 <th class="px-4 py-2 border-b">Status Penjemputan</th>
+                <th class="px-4 py-2 border-b">Action</th>
             </tr>
         </thead>
         <tbody>
@@ -31,19 +31,11 @@ $list = isset($pelanggan) ? $pelanggan : ($customers ?? collect());
             $lastOrder = $u->orders->first();
             $last = $lastOrder;
 
-            // Pembayaran dianggap lunas kalau:
-            // - status order = 'paid'/'lunas', ATAU
-            // - ada record pembayaran dengan status 'lunas'
-            $isPaid = false;
-            if ($last) {
-            $isPaid = in_array($last->status ?? '', ['paid', 'lunas'])
-            || (method_exists($last, 'pembayarans') && $last->relationLoaded('pembayarans')
-            ? $last->pembayarans->contains(fn($p) => $p->status === 'lunas')
-            : false);
-            }
+            // Metode pembayaran dari tabel orders
+            $metodePembayaran = $u->last_payment_method ?? ($last->metode_pembayaran ?? '-');
 
-            // Diambil jika status pesanan 'diambil' atau 'selesai'
-            $isPicked = in_array($last->status ?? '', ['diambil', 'selesai']);
+            // Status penjemputan diambil dari order_items.status terbaru
+            $pickupStatus = $u->last_pickup_status ?? optional(optional($last)->orderItems->first())->status;
 
             // Total orders count
             $totalOrders = $u->orders_count ?? 0;
@@ -57,14 +49,17 @@ $list = isset($pelanggan) ? $pelanggan : ($customers ?? collect());
                 <td class="px-4 py-2 border-b">
                     <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">{{ $totalOrders }}</span>
                 </td>
+                <td class="px-4 py-2 border-b">{{ $metodePembayaran ?: '-' }}</td>
+                <td class="px-4 py-2 border-b">{{ $pickupStatus ?: '-' }}</td>
                 <td class="px-4 py-2 border-b space-x-2">
                     {{-- Lihat detail pelanggan --}}
                     <a href="{{ route('admin.pelanggan.show', $u->id) }}" class="text-blue-600 hover:underline">👁️</a>
 
                     {{-- (Opsional) Lihat pesanan terakhir --}}
-                    @if($last)
-                    <a href="{{ url('/admin/daftar-pesanan/'.$last->id) }}" class="text-indigo-600 hover:underline">🧾</a>
-                    @endif
+                    {{-- @if($last)
+                    <a href="{{ url('/admin/daftar-pesanan/'.$last->id) }}"
+                        class="text-indigo-600 hover:underline">🧾</a>
+                    @endif --}}
 
                     {{-- Hapus pelanggan --}}
                     <form action="{{ route('admin.pelanggan.destroy', $u->id) }}" method="POST" class="inline">
@@ -73,12 +68,6 @@ $list = isset($pelanggan) ? $pelanggan : ($customers ?? collect());
                         <button type="submit" class="text-red-600 hover:underline"
                             onclick="return confirm('Yakin hapus pelanggan ini?')">🗑️</button>
                     </form>
-                </td>
-                <td class="px-4 py-2 border-b">
-                    <input type="checkbox" {{ $isPaid ? 'checked' : '' }} disabled>
-                </td>
-                <td class="px-4 py-2 border-b">
-                    <input type="checkbox" {{ $isPicked ? 'checked' : '' }} disabled>
                 </td>
             </tr>
             @empty

@@ -31,13 +31,21 @@ class PelangganController extends Controller
         // pesanan terakhir untuk kolom status/aksi di tabel
         $pelanggan = $query
             ->with([
-                'orders' => fn($q) => $q->latest()->limit(1),
-                // 'pesanan' => fn($q) => $q->latest()->limit(1),
-                // kalau perlu status bayar detail, bisa eager load juga:
-                // 'pesanan.pembayarans'
+                'orders' => fn($q) => $q->latest()->limit(1)->with([
+                    // Ambil item pesanan terbaru untuk status penjemputan
+                    'orderItems' => fn($qi) => $qi->latest('id')
+                ]),
             ])
             ->orderBy('email')
             ->get();
+
+        // Tambahkan properti ringkas untuk dipakai di view
+        $pelanggan->transform(function ($u) {
+            $lastOrder = $u->orders->first();
+            $u->last_payment_method = $lastOrder->metode_pembayaran ?? null;
+            $u->last_pickup_status  = optional(optional($lastOrder)->orderItems->first())->status;
+            return $u;
+        });
 
         // kirim dua alias variabel agar kompatibel dengan view lama/baru
         return view('admin.pelanggan.index', [

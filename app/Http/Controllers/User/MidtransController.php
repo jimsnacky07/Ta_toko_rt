@@ -523,13 +523,16 @@ class MidtransController extends Controller
                             'user_id' => $userId,
                             'kode_pesanan' => $opCode,
                             'order_code' => $opCode,
-                            'status' => 'diproses',
+                            'status' => 'menunggu',
                             'total_harga' => $prodTotal,
                             'total_amount' => $prodTotal,
                             'metode_pembayaran' => $paymentMethod,
                             'paid_at' => now(),
                         ]);
 
+                        // Tentukan status penjemputan berdasarkan pilihan user saat checkout
+                        $pickupMethod = $pendingOrder['pickup_method'] ?? 'store';
+                        $initialPickupStatus = $pickupMethod === 'jnt' ? 'Dikirim Via Kurir' : 'Diambil Ditoko';
                         foreach ($prodItems as $item) {
                             \App\Models\OrderItem::create([
                                 'order_id' => $opOrder->id,
@@ -541,7 +544,7 @@ class MidtransController extends Controller
                                 'quantity' => (int)($item['quantity'] ?? 1),
                                 'total_price' => (int)($item['total_price'] ?? 0),
                                 'special_request' => $item['special_request'] ?? null,
-                                'status' => 'menunggu',
+                                'status' => $initialPickupStatus,
                             ]);
                         }
 
@@ -563,13 +566,16 @@ class MidtransController extends Controller
                             'user_id' => $userId,
                             'kode_pesanan' => $ocCode,
                             'order_code' => $ocCode,
-                            'status' => 'diproses',
+                            'status' => 'menunggu',
                             'total_harga' => $customTotal,
                             'total_amount' => $customTotal,
                             'metode_pembayaran' => $paymentMethod,
                             'paid_at' => now(),
                         ]);
 
+                        // Status penjemputan untuk custom juga mengikuti pilihan user
+                        $pickupMethod = $pendingOrder['pickup_method'] ?? 'store';
+                        $initialPickupStatus = $pickupMethod === 'jnt' ? 'Dikirim Via Kurir' : 'Diambil Ditoko';
                         foreach ($customItems as $item) {
                             \App\Models\OrderItem::create([
                                 'order_id' => $ocOrder->id,
@@ -582,7 +588,7 @@ class MidtransController extends Controller
                                 'quantity' => (int)($item['quantity'] ?? 1),
                                 'total_price' => (int)($item['total_price'] ?? 0),
                                 'special_request' => $item['special_request'] ?? null,
-                                'status' => 'menunggu',
+                                'status' => $initialPickupStatus,
                             ]);
                         }
 
@@ -642,8 +648,8 @@ class MidtransController extends Controller
                 // Mapping status Midtrans ke status order di DB (sesuai enum values)
                 $statusMap = [
                     'pending'     => 'menunggu',
-                    'capture'     => 'diproses',
-                    'settlement'  => 'diproses',
+                    'capture'     => 'menunggu',
+                    'settlement'  => 'menunggu',
                     'deny'        => 'dibatalkan',
                     'cancel'      => 'dibatalkan',
                     'expire'      => 'dibatalkan',
@@ -651,7 +657,8 @@ class MidtransController extends Controller
                 ];
 
                 $newStatus = $statusMap[$trx] ?? $order->status;
-                $order->status = $newStatus;
+                // Guard: biarkan status tetap 'menunggu'; status produksi/penjemputan akan diubah oleh tailor dari panel admin
+                $order->status = 'menunggu';
 
                 if (in_array($trx, ['capture', 'settlement'])) {
                     $order->paid_at = now();

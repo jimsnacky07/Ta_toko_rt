@@ -93,11 +93,11 @@
             </table>
         </div>
         @if(isset($recentOrders) && $recentOrders->count() > 0)
-        <div class="p-4 border-t">
-            <a href="{{ route('tailor.orders') }}" class="text-blue-600 hover:underline">
-                Lihat semua pesanan →
-            </a>
-        </div>
+            {{-- <div class="p-4 border-t">
+                <a href="{{ route('tailor.orders.index') }}" class="text-blue-600 hover:underline">
+                    Lihat semua pesanan →
+                </a>
+            </div> --}}
         @endif
     </div>
 </div>

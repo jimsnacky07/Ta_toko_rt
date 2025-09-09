@@ -27,9 +27,15 @@ $img = $item->image
     <div class="rounded-xl border bg-white shadow-sm p-5 space-y-4">
       <h3 class="text-xl font-semibold">{{ $item->name }}</h3>
       <div class="text-lg font-bold">Rp {{ number_format($item->price ?? 0, 0, ',', '.') }}</div>
+      @if($item->kategory)
+      <div>
+        <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{{ $item->kategory }}</span>
+      </div>
+      @endif
 
       <div class="flex gap-3">
-        <a href="{{ route('admin.galeri.jahit.edit', $item) }}" class="px-4 py-2 rounded border hover:bg-gray-50">Edit</a>
+        <a href="{{ route('admin.galeri.jahit.edit', $item) }}"
+          class="px-4 py-2 rounded border hover:bg-gray-50">Edit</a>
         <a href="{{ route('admin.galeri.jahit.index') }}" class="px-4 py-2 rounded bg-gray-100">Kembali</a>
       </div>
     </div>
@@ -40,7 +46,8 @@ $img = $item->image
     <div class="border-b px-5 py-3 font-semibold">Spesifikasi Produk</div>
     <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3">
       @if(!empty($item->kategory))
-      <div class="flex justify-between"><span class="text-gray-600">Kategori</span><span>{{ $item->kategory }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-600">Kategori</span><span>{{ $item->kategory }}</span>
+      </div>
       @endif
       @if(!empty($item->bahan))
       <div class="flex justify-between"><span class="text-gray-600">Bahan</span><span>{{ $item->bahan }}</span></div>
@@ -49,7 +56,8 @@ $img = $item->image
       <div class="flex justify-between"><span class="text-gray-600">Motif</span><span>{{ $item->motif }}</span></div>
       @endif
       @if(!empty($item->dikirim_dari))
-      <div class="flex justify-between"><span class="text-gray-600">Dikirim Dari</span><span>{{ $item->dikirim_dari }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-600">Dikirim Dari</span><span>{{ $item->dikirim_dari
+          }}</span></div>
       @endif
       @if(empty($item->kategory) && empty($item->bahan) && empty($item->motif) && empty($item->dikirim_dari))
       <div class="text-gray-500">Belum ada spesifikasi.</div>

@@ -52,8 +52,16 @@ class GaleriJahitController extends Controller
             'dikirim_dari' => 'nullable|string|max:100',
         ]);
 
+        // Simpan gambar ke public/images dengan nama asli
         if ($request->hasFile('gambar')) {
-            $data['gambar'] = $request->file('gambar')->store('images', 'public');
+            $file = $request->file('gambar');
+            $originalName = $file->getClientOriginalName();
+            $targetDir = public_path('images');
+            if (!is_dir($targetDir)) {
+                @mkdir($targetDir, 0755, true);
+            }
+            $file->move($targetDir, $originalName);
+            $data['gambar'] = 'images/' . $originalName;
         }
 
         $payload = [
@@ -61,7 +69,8 @@ class GaleriJahitController extends Controller
             'price'        => $data['harga'],
             'deskripsi'    => $data['deskripsi']    ?? null,
             'image'        => $data['gambar']       ?? null,
-            'kategori'     => $data['kategori']     ?? null,
+            // Kolom di database bernama 'kategory'
+            'kategory'     => $data['kategori']     ?? null,
             'bahan'        => $data['bahan']        ?? null,
             'motif'        => $data['motif']        ?? null,
             'dikirim_dari' => $data['dikirim_dari'] ?? null,
@@ -98,17 +107,30 @@ class GaleriJahitController extends Controller
             'dikirim_dari' => 'nullable|string|max:100',
         ]);
 
+        // Jika ada gambar baru, hapus lama di public/images (jika ada) lalu simpan yang baru
         if ($request->hasFile('gambar')) {
             if ($product->image) {
-                Storage::disk('public')->delete($product->image);
+                $oldPath = public_path($product->image);
+                if (is_file($oldPath)) {
+                    @unlink($oldPath);
+                }
             }
-            $data['gambar'] = $request->file('gambar')->store('images', 'public');
+
+            $file = $request->file('gambar');
+            $originalName = $file->getClientOriginalName();
+            $targetDir = public_path('images');
+            if (!is_dir($targetDir)) {
+                @mkdir($targetDir, 0755, true);
+            }
+            $file->move($targetDir, $originalName);
+            $data['gambar'] = 'images/' . $originalName;
         }
 
         $payload = [
             'name'         => $data['nama'],
             'price'        => $data['harga'],
-            'kategori'     => $data['kategori']     ?? null,
+            // Map ke kolom 'kategory' di database
+            'kategory'     => $data['kategori']     ?? null,
             'bahan'        => $data['bahan']        ?? null,
             'motif'        => $data['motif']        ?? null,
             'dikirim_dari' => $data['dikirim_dari'] ?? null,
@@ -130,7 +152,10 @@ class GaleriJahitController extends Controller
     public function destroy(Product $product)
     {
         if ($product->image) {
-            Storage::disk('public')->delete($product->image);
+            $oldPath = public_path($product->image);
+            if (is_file($oldPath)) {
+                @unlink($oldPath);
+            }
         }
         $product->delete();
 
