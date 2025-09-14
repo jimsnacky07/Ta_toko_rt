@@ -11,9 +11,9 @@ class ProductSeeder extends Seeder
     {
         // Hapus data lama terlebih dahulu jika ada
         DB::table('products')->delete();
-        
+
         $now = now();
-        
+
         // Array produk dengan deskripsi dan spesifikasi lengkap
         $products = [
             [
@@ -26,7 +26,7 @@ class ProductSeeder extends Seeder
                 'dikirim_dari' => 'Jakarta',
                 'warna' => 'Putih, Biru Muda, Abu-abu',
                 'ukuran' => 'S, M, L, XL',
-                'deskripsi_ukuran' => 'S: Lingkar dada 88-92cm, M: Lingkar dada 92-96cm, L: Lingkar dada 96-100cm, XL: Lingkar dada 100-104cm',
+                'deskripsi_ukuran' => 'S: Lingkar dada 88-92cm, Lingkar pinggang 68-72cm, Panjang 65-68cm, M: Lingkar dada 92-96cm, Lingkar pinggang 72-76cm, Panjang 68-71cm, L: Lingkar dada 96-100cm, Lingkar pinggang 76-80cm, Panjang 71-74cm, XL: Lingkar dada 100-104cm, Lingkar pinggang 80-84cm, Panjang 74-77cm',
                 'deskripsi' => 'Kemeja cowok polos lengan panjang dengan bahan cotton premium yang nyaman dan breathable. Desain klasik yang cocok untuk acara formal maupun kasual. Dilengkapi dengan kancing berkualitas dan jahitan rapi.',
                 'description' => 'Kemeja formal pria dengan bahan cotton premium, nyaman dipakai seharian',
                 'colors' => 'Putih,Biru Muda,Abu-abu',
@@ -46,7 +46,7 @@ class ProductSeeder extends Seeder
                 'dikirim_dari' => 'Jakarta',
                 'warna' => 'Biru Garis, Hitam Garis',
                 'ukuran' => 'S, M, L, XL',
-                'deskripsi_ukuran' => 'S: Lingkar dada 94cm, M: Lingkar dada 98cm, L: Lingkar dada 102cm, XL: Lingkar dada 106cm',
+                'deskripsi_ukuran' => 'S: Lingkar dada 94cm, Lingkar pinggang 70-74cm, Panjang 66-69cm, M: Lingkar dada 98cm, Lingkar pinggang 74-78cm, Panjang 69-72cm, L: Lingkar dada 102cm, Lingkar pinggang 78-82cm, Panjang 72-75cm, XL: Lingkar dada 106cm, Lingkar pinggang 82-86cm, Panjang 75-78cm',
                 'deskripsi' => 'Kemeja casual dengan motif garis halus yang memberikan kesan modern dan stylish. Berbahan linen blend yang adem dan nyaman untuk aktivitas sehari-hari. Perfect untuk gaya smart casual.',
                 'description' => 'Kemeja casual bergaris dengan bahan linen yang adem dan nyaman',
                 'colors' => 'Biru Garis,Hitam Garis',
@@ -346,7 +346,7 @@ class ProductSeeder extends Seeder
                 'dikirim_dari' => 'Jakarta',
                 'warna' => 'Hitam, Navy, Maroon',
                 'ukuran' => 'S, M, L, XL',
-                'deskripsi_ukuran' => 'S: Lingkar dada 86cm, M: Lingkar dada 90cm, L: Lingkar dada 94cm, XL: Lingkar dada 98cm',
+                'deskripsi_ukuran' => 'S: Lingkar dada 86-90cm, Lingkar pinggang 68-72cm, Panjang 120-125cm, M: Lingkar dada 90-94cm, Lingkar pinggang 72-76cm, Panjang 125-130cm, L: Lingkar dada 94-98cm, Lingkar pinggang 76-80cm, Panjang 130-135cm, XL: Lingkar dada 98-102cm, Lingkar pinggang 80-84cm, Panjang 135-140cm',
                 'deskripsi' => 'Dress casual dengan desain modern dan minimalis. Berbahan cotton stretch yang nyaman dan tidak mudah kusut. Perfect untuk daily wear atau hangout dengan teman. Model A-line yang flattering untuk semua bentuk tubuh.',
                 'description' => 'Dress casual modern dengan bahan stretch yang nyaman',
                 'colors' => 'Hitam,Navy,Maroon',
@@ -357,7 +357,7 @@ class ProductSeeder extends Seeder
                 'updated_at' => $now
             ]
         ];
-        
+
         // Insert semua produk
         DB::table('products')->insert($products);
     }

@@ -13,13 +13,19 @@ class DashboardController extends Controller
     {
         $now = Carbon::now();
 
-        // Total pesanan bulan ini
+        // Status yang harus dikecualikan dari dashboard
+        $excludedStatuses = ['dibatalkan', 'cancelled', 'canceled', 'batal'];
+
+        // Total pesanan bulan ini (kecualikan dibatalkan)
         $ordersThisMonth = Order::whereYear('created_at', $now->year)
             ->whereMonth('created_at', $now->month)
+            ->whereNotIn('status', $excludedStatuses)
             ->count();
 
         // Pesanan hari ini (opsional)
-        $ordersToday = Order::whereDate('created_at', $now->toDateString())->count();
+        $ordersToday = Order::whereDate('created_at', $now->toDateString())
+            ->whereNotIn('status', $excludedStatuses)
+            ->count();
 
         // Jumlah pesanan PROSES (pakai whereIn biar aman dengan variasi nama status)
         $inProcess = Order::whereIn('status', ['process', 'proses', 'processing', 'diproses'])->count();
@@ -34,7 +40,10 @@ class DashboardController extends Controller
         $customers = User::count();
 
         // 5 pesanan terbaru buat tabel ringkas
-        $latestOrders = Order::latest()->take(5)->get(['id', 'user_id', 'status', 'created_at']);
+        $latestOrders = Order::whereNotIn('status', $excludedStatuses)
+            ->latest()
+            ->take(5)
+            ->get(['id', 'user_id', 'status', 'created_at']);
 
         return view('admin.dashboard', compact(
             'ordersThisMonth',

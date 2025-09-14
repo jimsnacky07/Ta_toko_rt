@@ -162,11 +162,15 @@ class PesananController extends Controller
             return view('user.pesanan.pusat_pesanan', compact('orders'));
         }
 
+        $excludedStatuses = ['dibatalkan', 'cancelled', 'canceled', 'batal'];
+
         $q = Order::where('user_id', Auth::id())
             ->with('orderItems')
+            ->whereNotIn('status', $excludedStatuses)
             ->latest();
 
         if ($tab === 'unpaid') {
+            // status menunggu dipakai sebagai padanan unpaid
             $q->where('status', 'pending');
         }
 
@@ -208,6 +212,8 @@ class PesananController extends Controller
         }
 
         // ===== FIX DISINI: pakai alias kolom yg sesuai dengan DB =====
+        $excludedStatuses = ['dibatalkan', 'cancelled', 'canceled', 'batal'];
+
         $query = Order::where('user_id', $userId)
             ->with('orderItems') // jangan batasi select agar FK aman (order_id/pesanan_id)
             ->select([
@@ -219,6 +225,7 @@ class PesananController extends Controller
                 'created_at',
                 'updated_at',
             ])
+            ->whereNotIn('status', $excludedStatuses)
             ->latest();
 
         Log::info('Orders query', ['sql' => $query->toSql(), 'bindings' => $query->getBindings()]);

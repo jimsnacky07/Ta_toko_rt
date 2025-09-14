@@ -20,7 +20,7 @@ $list = isset($pelanggan) ? $pelanggan : ($customers ?? collect());
                 <th class="px-4 py-2 border-b">No Telpon</th>
                 <th class="px-4 py-2 border-b">Total Orders</th>
                 <th class="px-4 py-2 border-b">Metode Pembayaran</th>
-                <th class="px-4 py-2 border-b">Status Penjemputan</th>
+                <!-- <th class="px-4 py-2 border-b">Status Penjemputan</th> -->
                 <th class="px-4 py-2 border-b">Action</th>
             </tr>
         </thead>
@@ -50,7 +50,7 @@ $list = isset($pelanggan) ? $pelanggan : ($customers ?? collect());
                     <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">{{ $totalOrders }}</span>
                 </td>
                 <td class="px-4 py-2 border-b">{{ $metodePembayaran ?: '-' }}</td>
-                <td class="px-4 py-2 border-b">{{ $pickupStatus ?: '-' }}</td>
+                <!-- <td class="px-4 py-2 border-b">{{ $pickupStatus ?: '-' }}</td> -->
                 <td class="px-4 py-2 border-b space-x-2">
                     {{-- Lihat detail pelanggan --}}
                     <a href="{{ route('admin.pelanggan.show', $u->id) }}" class="text-blue-600 hover:underline">👁️</a>

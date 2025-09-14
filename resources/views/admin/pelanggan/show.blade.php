@@ -55,7 +55,12 @@
             <h2 class="text-lg font-semibold text-gray-800">Riwayat Pesanan</h2>
         </div>
 
-        @if($customer->orders->count() > 0)
+        @php
+        $excludedStatuses = ['dibatalkan','cancelled','canceled','batal'];
+        $orders = $customer->orders->filter(fn($o) => !in_array(strtolower($o->status), $excludedStatuses));
+        @endphp
+
+        @if($orders->count() > 0)
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -77,7 +82,7 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach($customer->orders as $order)
+                    @foreach($orders as $order)
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {{ $order->order_code ?? $order->kode_pesanan ?? '#' . $order->id }}

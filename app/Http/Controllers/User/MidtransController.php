@@ -297,6 +297,15 @@ class MidtransController extends Controller
                 'transaction_status' => $trx
             ]);
 
+            // Jika transaksi dibatalkan/expired/failed: jangan buat order apapun di database
+            if (!$order && in_array($trx, ['deny', 'cancel', 'expire', 'failure'], true)) {
+                Log::info('[MIDTRANS] Skip creating order for cancelled/failed transaction', [
+                    'order_id' => $notif->order_id,
+                    'transaction_status' => $trx
+                ]);
+                return response()->json(['ok' => true]);
+            }
+
             // Jika order belum ada dan pembayaran sukses, buat order baru dari session
             if (!$order && in_array($trx, ['capture', 'settlement'])) {
                 Log::warning('[MIDTRANS] Order tidak ditemukan di database, mencoba buat dari session', [

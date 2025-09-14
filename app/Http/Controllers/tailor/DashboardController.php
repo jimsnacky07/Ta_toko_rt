@@ -13,28 +13,20 @@ class DashboardController extends Controller
 {
     public function index(Request $r)
     {
-        // Identitas tailor saat ini
-        $tailor = Order::where('user_id', $r->user()->id)->first();
-
-        // Scope untuk order yang ditugaskan ke tailor ini (jika ada data tailor)
-        $orderQuery = Order::query();
-        if ($tailor) {
-            $orderQuery->where('tailor_id', $tailor->id);
-        }
-
-        // Angka ringkasan
-        $myOrders   = (clone $orderQuery)->count();
-        $inProgress = (clone $orderQuery)->where('status', 'diproses')->count();
-        $completed  = (clone $orderQuery)->where('status', 'selesai')->count();
-        $pending    = (clone $orderQuery)->where('status', 'menunggu')->count();
+        // Hitung berdasarkan semua order (tanpa filter tailor)
+        $myOrders    = Order::where('status', '!=', 'dibatalkan')->count();
+        $pending     = Order::where('status', 'menunggu')->count();
+        $inProgress  = Order::where('status', 'diproses')->count();
+        $readyToPick = Order::where('status', 'siap-diambil')->count();
+        $completed   = Order::where('status', 'selesai')->count();
 
         // 10 pesanan terbaru untuk tabel bawah
-        $recentOrders = (clone $orderQuery)
-            ->with(['user', 'orderItems'])
+        $recentOrders = Order::with(['user', 'orderItems'])
+            ->where('status', '!=', 'dibatalkan')
             ->latest('created_at')
             ->limit(10)
             ->get();
 
-        return view('tailor.dashboard', compact('myOrders', 'inProgress', 'completed', 'pending', 'recentOrders'));
+        return view('tailor.dashboard', compact('myOrders', 'inProgress', 'completed', 'pending', 'readyToPick', 'recentOrders'));
     }
 }

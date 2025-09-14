@@ -105,7 +105,7 @@
                                 <span class="inline-block px-2 py-1 rounded-full text-xs font-medium
                                         @if($item->status === 'menunggu') bg-yellow-100 text-yellow-800
                                         @elseif($item->status === 'diproses') bg-blue-100 text-blue-800
-                                        @elseif($item->status === 'siap') bg-purple-100 text-purple-800
+                                        @elseif($item->status === 'siap-diambil') bg-purple-100 text-purple-800
                                         @elseif($item->status === 'selesai') bg-green-100 text-green-800
                                         @elseif($item->status === 'dibatalkan') bg-red-100 text-red-800
                                         @else bg-gray-100 text-gray-800
@@ -113,7 +113,7 @@
                                     {{ ucfirst($item->status) }}
                                 </span>
                                 @if($item->status === $order->status ||
-                                ($item->status === 'siap' && $order->status === 'siap-diambil'))
+                                ($item->status === 'siap-diambil' && $order->status === 'siap-diambil'))
                                 <span class="text-xs text-green-600">✓ Sinkron</span>
                                 @else
                                 <span class="text-xs text-orange-600">⚠ Perlu Sync</span>
@@ -206,83 +206,126 @@
             </div>
             @endif
 
-            <!-- Data Ukuran Badan -->
-            @if($order->user->dataUkuranBadan)
+            <!-- Data Ukuran Badan (Order Custom) / Panduan Ukuran (Order Product) -->
+            @php
+            $firstItem = $order->orderItems->first();
+            // Deteksi order product vs custom berdasarkan order_code
+            $isProductOrder = $order->order_code && str_starts_with($order->order_code, 'OP-');
+            $isCustomOrder = $order->order_code && str_starts_with($order->order_code, 'OC-');
+            @endphp
+
+            @if($isProductOrder)
+            @php
+            // Untuk Order Product - Tampilkan Panduan Ukuran
+            $selectedSize = $firstItem->size; // Ukuran yang dipilih customer (S, M, L, XL)
+            $selectedSizeData = [];
+            $garmentType = $firstItem->garment_type ?? '';
+
+            // Panduan ukuran statis berdasarkan jenis pakaian
+            $sizeGuides = [
+            'kemeja' => [
+            'S' => ['Lingkar Dada: 88-92 cm', 'Lingkar Pinggang: 68-72 cm', 'Panjang: 65-68 cm'],
+            'M' => ['Lingkar Dada: 92-96 cm', 'Lingkar Pinggang: 72-76 cm', 'Panjang: 68-71 cm'],
+            'L' => ['Lingkar Dada: 96-100 cm', 'Lingkar Pinggang: 76-80 cm', 'Panjang: 71-74 cm'],
+            'XL' => ['Lingkar Dada: 100-104 cm', 'Lingkar Pinggang: 80-84 cm', 'Panjang: 74-77 cm']
+            ],
+            'baju' => [
+            'S' => ['Lingkar Dada: 88-92 cm', 'Lingkar Pinggang: 68-72 cm', 'Panjang: 65-68 cm'],
+            'M' => ['Lingkar Dada: 92-96 cm', 'Lingkar Pinggang: 72-76 cm', 'Panjang: 68-71 cm'],
+            'L' => ['Lingkar Dada: 96-100 cm', 'Lingkar Pinggang: 76-80 cm', 'Panjang: 71-74 cm'],
+            'XL' => ['Lingkar Dada: 100-104 cm', 'Lingkar Pinggang: 80-84 cm', 'Panjang: 74-77 cm']
+            ],
+            'rok' => [
+            'S' => ['Lingkar Pinggang: 62-66 cm', 'Lingkar Pinggul: 88-92 cm', 'Panjang: 60-65 cm'],
+            'M' => ['Lingkar Pinggang: 66-70 cm', 'Lingkar Pinggul: 92-96 cm', 'Panjang: 65-70 cm'],
+            'L' => ['Lingkar Pinggang: 70-74 cm', 'Lingkar Pinggul: 96-100 cm', 'Panjang: 70-75 cm'],
+            'XL' => ['Lingkar Pinggang: 74-78 cm', 'Lingkar Pinggul: 100-104 cm', 'Panjang: 75-80 cm']
+            ],
+            'celana' => [
+            'S' => ['Lingkar Pinggang: 76-80 cm', 'Lingkar Pinggul: 88-92 cm', 'Panjang: 100-105 cm'],
+            'M' => ['Lingkar Pinggang: 80-84 cm', 'Lingkar Pinggul: 92-96 cm', 'Panjang: 105-110 cm'],
+            'L' => ['Lingkar Pinggang: 84-88 cm', 'Lingkar Pinggul: 96-100 cm', 'Panjang: 110-115 cm'],
+            'XL' => ['Lingkar Pinggang: 88-92 cm', 'Lingkar Pinggul: 100-104 cm', 'Panjang: 115-120 cm']
+            ],
+            'dress' => [
+            'S' => ['Lingkar Dada: 86-90 cm', 'Lingkar Pinggang: 68-72 cm', 'Panjang: 120-125 cm'],
+            'M' => ['Lingkar Dada: 90-94 cm', 'Lingkar Pinggang: 72-76 cm', 'Panjang: 125-130 cm'],
+            'L' => ['Lingkar Dada: 94-98 cm', 'Lingkar Pinggang: 76-80 cm', 'Panjang: 130-135 cm'],
+            'XL' => ['Lingkar Dada: 98-102 cm', 'Lingkar Pinggang: 80-84 cm', 'Panjang: 135-140 cm']
+            ]
+            ];
+
+            // Tentukan jenis pakaian yang sesuai
+            $garmentTypeLower = strtolower($garmentType);
+            $garmentKey = 'kemeja'; // default
+            if (str_contains($garmentTypeLower, 'rok')) { $garmentKey = 'rok'; }
+            elseif (str_contains($garmentTypeLower, 'celana')) { $garmentKey = 'celana'; }
+            elseif (str_contains($garmentTypeLower, 'dress')) { $garmentKey = 'dress'; }
+            elseif (str_contains($garmentTypeLower, 'baju') || str_contains($garmentTypeLower, 'kemeja')) { $garmentKey = 'kemeja'; }
+
+            // Ambil data ukuran yang dipilih
+            if (isset($sizeGuides[$garmentKey][$selectedSize])) {
+            $selectedSizeData = $sizeGuides[$garmentKey][$selectedSize];
+            }
+            @endphp
             <div class="bg-white rounded-xl shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Data Ukuran Badan</h3>
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                    @if($order->user->dataUkuranBadan->lingkaran_dada)
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Panduan Ukuran Produk (Ukuran {{ $selectedSize }})</h3>
+                <div class="space-y-3 text-sm">
+                    @if(!empty($selectedSizeData))
+                    @foreach($selectedSizeData as $measurement)
                     <div>
-                        <label class="text-gray-500">Lingkar Dada</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->lingkaran_dada }} cm</p>
+                        <label class="text-gray-500">{{ $measurement }}</label>
+                    </div>
+                    @endforeach
+                    @else
+                    <div>
+                        <p class="text-gray-500 text-center">Panduan ukuran tidak tersedia untuk jenis pakaian ini</p>
                     </div>
                     @endif
-                    @if($order->user->dataUkuranBadan->lingkaran_pinggang)
+                </div>
+            </div>
+            @elseif($isCustomOrder && $order->user->dataUkuranBadan)
+            @php
+            // Untuk Order Custom - Tampilkan Data Ukuran Badan (tetap seperti sebelumnya)
+            $garment = strtolower($firstItem->garment_type ?? '');
+            // Tentukan kelompok ukuran sesuai jenis pakaian custom
+            $map = [
+            'rok' => ['lingkaran_pinggang','lingkaran_pinggul','panjang_rok'],
+            'celana' => ['lingkaran_pinggang','lingkaran_pinggul','panjang_celana','lingkaran_paha','lingkaran_lutut'],
+            // baju/kemeja/jas/dress/kebaya/blouse
+            'baju' => ['lingkaran_dada','lingkaran_pinggang','lingkaran_lengan','lingkaran_leher','lebar_bahu','panjang_baju','panjang_lengan'],
+            ];
+            $keys = $map['baju'];
+            if (str_contains($garment,'rok')) { $keys = $map['rok']; }
+            elseif (str_contains($garment,'celana')) { $keys = $map['celana']; }
+            elseif (str_contains($garment,'kemeja') || str_contains($garment,'jas') || str_contains($garment,'dress') || str_contains($garment,'kebaya') || str_contains($garment,'blouse') || str_contains($garment,'baju')) { $keys = $map['baju']; }
+            $labels = [
+            'lingkaran_dada' => 'Lingkar Dada',
+            'lingkaran_pinggang' => 'Lingkar Pinggang',
+            'lingkaran_pinggul' => 'Lingkar Pinggul',
+            'lingkaran_leher' => 'Lingkar Leher',
+            'lingkaran_lengan' => 'Lingkar Lengan',
+            'lingkaran_paha' => 'Lingkar Paha',
+            'lingkaran_lutut' => 'Lingkar Lutut',
+            'panjang_baju' => 'Panjang Baju',
+            'panjang_lengan' => 'Panjang Lengan',
+            'panjang_celana' => 'Panjang Celana',
+            'panjang_rok' => 'Panjang Rok',
+            'lebar_bahu' => 'Lebar Bahu',
+            ];
+            $uk = $order->user->dataUkuranBadan;
+            @endphp
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Data Ukuran Badan (sesuai pesanan)</h3>
+                <div class="space-y-3 text-sm">
+                    @foreach($keys as $k)
+                    @if(!is_null($uk->$k))
                     <div>
-                        <label class="text-gray-500">Lingkar Pinggang</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->lingkaran_pinggang }} cm</p>
+                        <label class="text-gray-500">{{ $labels[$k] }}</label>
+                        <p class="font-medium">{{ $uk->$k }} cm</p>
                     </div>
                     @endif
-                    @if($order->user->dataUkuranBadan->lingkaran_pinggul)
-                    <div>
-                        <label class="text-gray-500">Lingkar Pinggul</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->lingkaran_pinggul }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->lingkaran_leher)
-                    <div>
-                        <label class="text-gray-500">Lingkar Leher</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->lingkaran_leher }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->lingkaran_lengan)
-                    <div>
-                        <label class="text-gray-500">Lingkar Lengan</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->lingkaran_lengan }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->lingkaran_paha)
-                    <div>
-                        <label class="text-gray-500">Lingkar Paha</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->lingkaran_paha }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->lingkaran_lutut)
-                    <div>
-                        <label class="text-gray-500">Lingkar Lutut</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->lingkaran_lutut }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->panjang_baju)
-                    <div>
-                        <label class="text-gray-500">Panjang Baju</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->panjang_baju }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->panjang_lengan)
-                    <div>
-                        <label class="text-gray-500">Panjang Lengan</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->panjang_lengan }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->panjang_celana)
-                    <div>
-                        <label class="text-gray-500">Panjang Celana</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->panjang_celana }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->panjang_rok)
-                    <div>
-                        <label class="text-gray-500">Panjang Rok</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->panjang_rok }} cm</p>
-                    </div>
-                    @endif
-                    @if($order->user->dataUkuranBadan->lebar_bahu)
-                    <div>
-                        <label class="text-gray-500">Lebar Bahu</label>
-                        <p class="font-medium">{{ $order->user->dataUkuranBadan->lebar_bahu }} cm</p>
-                    </div>
-                    @endif
+                    @endforeach
                 </div>
             </div>
             @endif
@@ -297,7 +340,7 @@
                         <select name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="menunggu" {{ $order->status == 'menunggu' ? 'selected' : '' }}>Menunggu Giliran</option>
                             <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : '' }}>Sedang Dikerjakan</option>
-                            <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai Dikerjakan</option>
+                            <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai</option>
                             <option value="siap-diambil" {{ $order->status == 'siap-diambil' ? 'selected' : '' }}>Siap Diambil</option>
                         </select>
                         <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">

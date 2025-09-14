@@ -55,24 +55,30 @@
         </thead>
         <tbody>
           @forelse($latestOrders as $o)
-            <tr class="border-b last:border-0">
-              <td class="py-2 pr-4">#{{ $o->id }}</td>
-              <td class="py-2 pr-4">{{ $o->user_id }}</td>
-              <td class="py-2 pr-4">
-                <span class="px-2 py-0.5 rounded-full text-xs
+          @if(in_array($o->status, ['dibatalkan','cancelled','canceled','batal']))
+          @continue
+          @endif
+          <tr class="border-b last:border-0">
+            <td class="py-2 pr-4">#{{ $o->id }}</td>
+            <td class="py-2 pr-4">{{ $o->user_id }}</td>
+            <td class="py-2 pr-4">
+              <span class="px-2 py-0.5 rounded-full text-xs
                   @class([
-                    'bg-yellow-100 text-yellow-800' => in_array($o->status, ['pending','unpaid','waiting']),
-                    'bg-blue-100 text-blue-800'     => in_array($o->status, ['process','proses','processing']),
+                    'bg-yellow-100 text-yellow-800' => in_array($o->status, ['menunggu','unpaid','waiting']),
+                    'bg-blue-100 text-blue-800'     => in_array($o->status, ['diproses','proses','processing']),
                     'bg-green-100 text-green-800'   => in_array($o->status, ['selesai','completed','done','success']),
+                    'bg-purple-100 text-purple-800'   => in_array($o->status, ['siap-diambil','siap-dijemput']),
                     'bg-gray-100 text-gray-800'     => true,
                   ])">
-                  {{ ucfirst($o->status) }}
-                </span>
-              </td>
-              <td class="py-2">{{ $o->created_at->format('d M Y H:i') }}</td>
-            </tr>
+                {{ ucfirst($o->status) }}
+              </span>
+            </td>
+            <td class="py-2">{{ $o->created_at->format('d M Y H:i') }}</td>
+          </tr>
           @empty
-            <tr><td colspan="4" class="py-3 text-center text-gray-500">Belum ada pesanan.</td></tr>
+          <tr>
+            <td colspan="4" class="py-3 text-center text-gray-500">Belum ada pesanan.</td>
+          </tr>
           @endforelse
         </tbody>
       </table>

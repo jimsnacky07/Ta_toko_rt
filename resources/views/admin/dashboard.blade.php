@@ -24,14 +24,14 @@
 
             <!-- Jumlah Pelanggan -->
             <div class="bg-white rounded-xl shadow p-5">
-                <div class="text-sm text-gray-500">Total Pelanggan</div>
-                <div class="mt-2 text-3xl font-bold text-purple-600">{{ $customers }}</div>
+                <div class="text-sm text-gray-500">Menunggu Giliran</div>
+                <div class="mt-2 text-3xl font-bold text-yellow-600">{{ $pending }}</div>
             </div>
 
             <!-- Pesanan Proses -->
             <div class="bg-white rounded-xl shadow p-5">
-                <div class="text-sm text-gray-500">Sedang Diproses</div>
-                <div class="mt-2 text-3xl font-bold text-orange-600">{{ $inProcess }}</div>
+                <div class="text-sm text-gray-500">Sedang Dikerjakan</div>
+                <div class="mt-2 text-3xl font-bold text-blue-600">{{ $inProcess }}</div>
             </div>
         </div>
 
@@ -39,14 +39,14 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
             <!-- Pesanan Selesai -->
             <div class="bg-white rounded-xl shadow p-5">
-                <div class="text-sm text-gray-500">Pesanan Selesai</div>
-                <div class="mt-2 text-3xl font-bold text-green-600">{{ $completed }}</div>
+                <div class="text-sm text-gray-500">Siap Diambil</div>
+                <div class="mt-2 text-3xl font-bold text-purple-600">{{ $readyToPick }}</div>
             </div>
 
             <!-- Pesanan Menunggu -->
             <div class="bg-white rounded-xl shadow p-5">
-                <div class="text-sm text-gray-500">Pesanan Menunggu</div>
-                <div class="mt-2 text-3xl font-bold text-yellow-600">{{ $pending }}</div>
+                <div class="text-sm text-gray-500">Selesai</div>
+                <div class="mt-2 text-3xl font-bold text-green-600">{{ $completed }}</div>
             </div>
         </div>
 
@@ -88,12 +88,16 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @php
                                         $statusColors = [
+                                            'menunggu_giliran' => 'bg-yellow-100 text-yellow-800',
+                                            'sedang_dikerjakan' => 'bg-blue-100 text-blue-800',
+                                            'selesai_dikerjakan' => 'bg-green-100 text-green-800',
+                                            'paid' => 'bg-green-100 text-green-800',
                                             'menunggu' => 'bg-yellow-100 text-yellow-800',
                                             'diproses' => 'bg-blue-100 text-blue-800',
                                             'selesai' => 'bg-green-100 text-green-800',
-                                            'paid' => 'bg-green-100 text-green-800',
-                                            'pending' => 'bg-yellow-100 text-yellow-800',
-                                            'cancelled' => 'bg-red-100 text-red-800',
+                                            'dibatalkan' => 'bg-red-100 text-red-800',
+                                            'siap-diambil' => 'bg-purple-100 text-purple-800',
+                                            'siap_dijemput' => 'bg-purple-100 text-purple-800',
                                         ];
                                         $statusClass = $statusColors[$order->status] ?? 'bg-gray-100 text-gray-800';
                                     @endphp

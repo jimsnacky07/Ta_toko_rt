@@ -70,7 +70,7 @@ class Order extends Model
         $statusMapping = [
             'menunggu' => 'menunggu',
             'diproses' => 'diproses',
-            'siap-diambil' => 'siap',
+            'siap-diambil' => 'siap-diambil',
             'selesai' => 'selesai',
             'dibatalkan' => 'dibatalkan'
         ];

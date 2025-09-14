@@ -30,22 +30,12 @@
     </div>
   </div>
 
-  {{-- Filter --}}
+  {{-- Pencarian sederhana (nama/email) --}}
   <form method="get" class="mb-6 bg-white p-4 rounded-lg shadow">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
       <input type="hidden" name="type" value="{{ $type }}">
-      <input type="text" name="q" value="{{ request('q') }}" class="border rounded p-2" placeholder="Cari nama/email/kode pesanan...">
-      <select name="status" class="border rounded p-2">
-        <option value="">Semua status</option>
-        <option value="pending" @selected(request('status')==='pending' )>Pending</option>
-        <option value="paid" @selected(request('status')==='paid' )>Paid</option>
-        <option value="menunggu" @selected(request('status')==='menunggu' )>Menunggu</option>
-        <option value="diproses" @selected(request('status')==='diproses' )>Diproses</option>
-        <option value="selesai" @selected(request('status')==='selesai' )>Selesai</option>
-        <option value="cancelled" @selected(request('status')==='cancelled' )>Cancelled</option>
-      </select>
-      <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Filter</button>
-      <a href="{{ route('admin.daftar.pesanan') }}" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-center">Reset</a>
+      <input type="text" name="q" value="{{ request('q') }}" class="border rounded p-2" placeholder="Cari nama atau email...">
+      <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-max">Cari</button>
     </div>
   </form>
 
@@ -61,7 +51,6 @@
             <th class="p-3 text-left">Detail Produk</th>
             <th class="p-3 text-left">Total</th>
             <th class="p-3 text-left">Status</th>
-            <th class="p-3 text-left">Tailor</th>
             <th class="p-3 text-left">Aksi</th>
           </tr>
         </thead>
@@ -72,6 +61,8 @@
           $emailUser = $o->user->email ?? '';
           $kodeOrder = $o->order_code ?? $o->kode_pesanan ?? '#' . $o->id;
           $statusBayar = $o->status ?? '-';
+          // Skip jika status dibatalkan/cancelled
+          if (in_array(strtolower($statusBayar), ['dibatalkan','cancelled','canceled','batal'])) { continue; }
 
           // Tentukan jenis pesanan dgn prioritas prefix kode (OC- / OP-),
           // fallback ke inspeksi item jika prefix tidak ada
@@ -101,12 +92,11 @@
 
           // Status badge colors
           $statusColors = [
-          'pending' => 'bg-yellow-100 text-yellow-800',
-          'paid' => 'bg-green-100 text-green-800',
           'menunggu' => 'bg-yellow-100 text-yellow-800',
           'diproses' => 'bg-blue-100 text-blue-800',
           'selesai' => 'bg-green-100 text-green-800',
-          'cancelled' => 'bg-red-100 text-red-800',
+          'siap-diambil' => 'bg-purple-100 text-purple-800',
+          'dibatalkan' => 'bg-red-100 text-red-800',
           ];
           $badgeClass = $statusColors[$statusBayar] ?? 'bg-gray-100 text-gray-800';
           @endphp
@@ -161,23 +151,7 @@
               </span>
             </td>
 
-            <td class="p-3">
-              @if($o->tailor_id)
-              @php $tailor = $tailors->firstWhere('id', $o->tailor_id); @endphp
-              <span class="text-sm text-green-600">{{ $tailor->nama ?? $tailor->name ?? 'Tailor #' . $o->tailor_id }}</span>
-              @else
-              <form method="post" action="{{ route('admin.orders.assign', $kodeOrder) }}" class="flex gap-1">
-                @csrf
-                <select name="tailor_id" class="border rounded p-1 text-xs">
-                  <option value="">- pilih -</option>
-                  @foreach($tailors as $t)
-                  <option value="{{ $t->id }}">{{ $t->nama ?? $t->name }}</option>
-                  @endforeach
-                </select>
-                <button class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">Assign</button>
-              </form>
-              @endif
-            </td>
+            {{-- Kolom Tailor dihapus sesuai permintaan --}}
 
             <td class="p-3">
               <div class="flex gap-2">

@@ -16,14 +16,20 @@ class PelangganController extends Controller
      */
     public function index(Request $request)
     {
+        $excludedStatuses = ['dibatalkan', 'cancelled', 'canceled', 'batal'];
+
         $query = User::query()
             ->where('level', 'user')     // filter hanya pelanggan (bukan admin/tailor)
-            ->withCount(['orders']); // Count both new and old orders
+            ->withCount(['orders' => function ($q) use ($excludedStatuses) {
+                $q->whereNotIn('status', $excludedStatuses);
+            }]); // Hitung pesanan tanpa yang dibatalkan
 
         if (! $request->boolean('all')) {
             // default: hanya yang punya pesanan atau orders
-            $query->where(function ($q) {
-                $q->whereHas('orders');
+            $query->where(function ($q) use ($excludedStatuses) {
+                $q->whereHas('orders', function ($qo) use ($excludedStatuses) {
+                    $qo->whereNotIn('status', $excludedStatuses);
+                });
                 // ->orWhereHas('pesanan');
             });
         }
@@ -31,7 +37,7 @@ class PelangganController extends Controller
         // pesanan terakhir untuk kolom status/aksi di tabel
         $pelanggan = $query
             ->with([
-                'orders' => fn($q) => $q->latest()->limit(1)->with([
+                'orders' => fn($q) => $q->whereNotIn('status', $excludedStatuses)->latest()->limit(1)->with([
                     // Ambil item pesanan terbaru untuk status penjemputan
                     'orderItems' => fn($qi) => $qi->latest('id')
                 ]),
@@ -42,6 +48,7 @@ class PelangganController extends Controller
         // Tambahkan properti ringkas untuk dipakai di view
         $pelanggan->transform(function ($u) {
             $lastOrder = $u->orders->first();
+
             $u->last_payment_method = $lastOrder->metode_pembayaran ?? null;
             $u->last_pickup_status  = optional(optional($lastOrder)->orderItems->first())->status;
             return $u;

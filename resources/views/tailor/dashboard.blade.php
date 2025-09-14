@@ -12,27 +12,31 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Total Pesanan Saya -->
         <div class="bg-white rounded-xl shadow p-5">
-            <div class="text-sm text-gray-500">Total Pesanan Saya</div>
+            <div class="text-sm text-gray-500">Total Pesanan</div>
             <div class="mt-2 text-3xl font-bold">{{ $myOrders ?? 0 }}</div>
         </div>
-
+        
+        <div class="bg-white rounded-xl shadow p-5">
+            <div class="text-sm text-gray-500">Menunggu Giliran</div>
+            <div class="mt-2 text-3xl font-bold text-yellow-600">{{ $pending ?? 0 }}</div>
+        </div>
         <!-- Sedang Dikerjakan -->
         <div class="bg-white rounded-xl shadow p-5">
             <div class="text-sm text-gray-500">Sedang Dikerjakan</div>
-            <div class="mt-2 text-3xl font-bold text-yellow-600">{{ $inProgress ?? 0 }}</div>
+            <div class="mt-2 text-3xl font-bold text-blue-600">{{ $inProgress ?? 0 }}</div>
         </div>
 
         <!-- Selesai -->
+        <div class="bg-white rounded-xl shadow p-5">
+            <div class="text-sm text-gray-500">Siap Diambil</div>
+            <div class="mt-2 text-3xl font-bold text-purple-600">{{ $readyToPick ?? 0 }}</div>
+        </div>
         <div class="bg-white rounded-xl shadow p-5">
             <div class="text-sm text-gray-500">Selesai</div>
             <div class="mt-2 text-3xl font-bold text-green-600">{{ $completed ?? 0 }}</div>
         </div>
 
-        <!-- Menunggu -->
-        <div class="bg-white rounded-xl shadow p-5">
-            <div class="text-sm text-gray-500">Menunggu</div>
-            <div class="mt-2 text-3xl font-bold text-blue-600">{{ $pending ?? 0 }}</div>
-        </div>
+        <!-- Siap Diambil -->
     </div>
 
     <!-- Pesanan Terbaru -->
@@ -72,8 +76,9 @@
                         </td>
                         <td class="p-3">
                             <span class="px-2 py-1 rounded-full text-xs
-                                    @if($order->status === 'menunggu') bg-blue-100 text-blue-800
-                                    @elseif($order->status === 'diproses') bg-yellow-100 text-yellow-800
+                                    @if($order->status === 'menunggu') bg-yellow-100 text-yellow-800
+                                    @elseif($order->status === 'diproses') bg-blue-100 text-blue-800
+                                    @elseif($order->status === 'siap-diambil') bg-purple-100 text-purple-800
                                     @elseif($order->status === 'selesai') bg-green-100 text-green-800
                                     @else bg-gray-100 text-gray-800
                                     @endif">

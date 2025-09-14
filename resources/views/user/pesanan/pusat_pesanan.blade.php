@@ -64,14 +64,14 @@
   <div class="mb-4 p-3 bg-red-100 text-red-800 rounded">{{ session('error') }}</div>
 @endif
 
-{{-- Debug Info --}}
+<!-- {{-- Debug Info --}}
 <div class="mb-4 p-3 bg-blue-100 text-blue-800 rounded">
   <strong>Debug Info:</strong><br>
   User ID: {{ Auth::id() }}<br>
   User Name: {{ Auth::user() ? Auth::user()->nama : 'No user' }}<br>
   Orders Count: {{ is_countable($orders) ? count($orders) : 0 }}<br>
   Orders Type: {{ gettype($orders) }}
-</div>
+</div> -->
 
 {{-- Daftar Pesanan --}}
 <div class="space-y-4">

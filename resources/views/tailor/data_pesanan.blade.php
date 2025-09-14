@@ -26,6 +26,11 @@
                 <tbody>
                     @forelse($orders as $index => $order)
                     @php
+                    // Skip orders with cancelled status
+                    if (in_array(strtolower($order->status), ['dibatalkan', 'cancelled', 'canceled', 'batal'])) {
+                    continue;
+                    }
+
                     $namaUser = $order->user->nama ?? $order->user->name ?? '—';
                     $kodeOrder = $order->order_code ?? $order->kode_pesanan ?? '#' . $order->id;
                     $tanggal = $order->created_at;
